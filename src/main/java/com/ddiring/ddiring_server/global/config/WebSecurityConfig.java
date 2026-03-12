@@ -47,11 +47,7 @@ public class WebSecurityConfig {
                         // Public endpoints (인증 불필요)
                         .requestMatchers(
                                 "/",
-                                "/api/auth/**",
-                                "/api/user/signup",
-                                "/api/user/signin",
-                                "/api/user/logout",
-                                "/api/user/check-username",
+                                "api/users",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**"
