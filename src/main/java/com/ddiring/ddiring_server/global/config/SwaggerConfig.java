@@ -51,10 +51,10 @@ public class SwaggerConfig {
         String[] activeProfiles = environment.getActiveProfiles();
         for (String profile : activeProfiles) {
             if ("prod".equals(profile)) {
-                return "https://api.ddiring.com";
+                return "https://api.ddiringapp.com";
             }
             if ("dev".equals(profile)) {
-                return "https://api.ddiring.com";
+                return "https://api.ddiringapp.com";
             }
         }
         // 로컬 환경
