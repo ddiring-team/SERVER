@@ -47,6 +47,7 @@ public class WebSecurityConfig {
                         // Public endpoints (인증 불필요)
                         .requestMatchers(
                                 "/",
+                                "/api/s3/presigned-url",
                                 "api/users",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
