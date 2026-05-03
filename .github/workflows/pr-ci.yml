@@ -27,5 +27,5 @@ jobs:
       - name: gradlew 실행 권한 부여
         run: chmod +x ./gradlew
 
-      - name: 빌드하기
-        run: ./gradlew clean build -x test
+      - name: 빌드 및 테스트
+        run: ./gradlew clean build
