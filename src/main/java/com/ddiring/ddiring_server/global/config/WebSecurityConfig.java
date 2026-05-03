@@ -72,7 +72,12 @@ public class WebSecurityConfig {
         configuration.setAllowCredentials(true); // 자격 증명 포함 허용 (예 : 쿠키, authorization 헤더) - true 로 설정해야
         // 클라가 인증정보를 함께 보낼 수 있다.
         configuration.setAllowedOrigins(
-                Arrays.asList("http://localhost:3000", "https://www.drawandyou.com", "https://api.drawandyou.com")
+                Arrays.asList(
+                        "http://localhost:3000",
+                        "https://ddiringapp.com",
+                        "https://www.ddiringapp.com",
+                        "https://api.ddiringapp.com"
+                )
         );
         // 예를 들어, 리액트 프론트엔드가 http://localhost:3000 에서 실행된다면, 그 주소를 명시해야겟지
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS")); // 허용할 메소드
