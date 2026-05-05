@@ -42,6 +42,8 @@ public class FamilyMember extends BaseEntity {
 
     private LocalDateTime joinedAt;     // 승인 완료 시각
 
-
-
+    public void approve() {
+        this.status = MemberStatus.APPROVED;
+        this.joinedAt = LocalDateTime.now();
+    }
 }
