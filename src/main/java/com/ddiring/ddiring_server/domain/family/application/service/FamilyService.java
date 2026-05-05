@@ -91,25 +91,17 @@ public class FamilyService {
 
     @Transactional
     public void approveMember(Long userId, Long memberId) {
-        validateFamilyOwner(userId, memberId);
-
-        FamilyMember member = familyMemberRepository.findById(memberId)
-                .orElseThrow(FamilyMemberNotFoundException::new);
-
+        FamilyMember member = validateFamilyOwner(userId, memberId);
         member.approve();
     }
 
     @Transactional
     public void rejectMember(Long userId, Long memberId) {
-        validateFamilyOwner(userId, memberId);
-
-        FamilyMember member = familyMemberRepository.findById(memberId)
-                .orElseThrow(FamilyMemberNotFoundException::new);
-
+        FamilyMember member = validateFamilyOwner(userId, memberId);
         familyMemberRepository.delete(member);
     }
 
-    private void validateFamilyOwner(Long userId, Long memberId) {
+    private FamilyMember validateFamilyOwner(Long userId, Long memberId) {
         Long familyId = familyMemberRepository.findFamilyIdByUserId(userId)
                 .orElseThrow(FamilyNotFoundException::new);
 
@@ -126,6 +118,8 @@ public class FamilyService {
         if (!targetMember.getFamily().getId().equals(familyId)) {
             throw new FamilyMemberNotFoundException();
         }
+
+        return targetMember;
     }
 
     private String generateUniqueInviteCode() {

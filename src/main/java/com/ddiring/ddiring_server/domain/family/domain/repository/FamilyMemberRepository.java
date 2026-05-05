@@ -3,6 +3,7 @@ package com.ddiring.ddiring_server.domain.family.domain.repository;
 import com.ddiring.ddiring_server.domain.family.domain.entity.FamilyMember;
 import com.ddiring.ddiring_server.domain.family.domain.entity.enums.MemberStatus;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,7 +20,9 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
 
     boolean existsByUser_Id(Long userId);
 
+    @EntityGraph(attributePaths = {"user"})
     List<FamilyMember> findAllByFamily_Id(Long familyId);
 
+    @EntityGraph(attributePaths = {"user"})
     List<FamilyMember> findAllByFamily_IdAndRoleAndStatus(Long familyId, Role role, MemberStatus status);
 }
