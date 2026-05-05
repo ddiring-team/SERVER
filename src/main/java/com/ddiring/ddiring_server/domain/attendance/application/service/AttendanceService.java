@@ -70,6 +70,12 @@ public class AttendanceService {
         return AttendanceMonthlyResponse.of(year, month, attendedDays);
     }
 
+    @Transactional(readOnly = true)
+    public AttendanceTodayResponse getMyTodayAttendance(Long userId) {
+        boolean attended = attendanceRepository.existsByUser_IdAndCheckedAt(userId, LocalDate.now());
+        return AttendanceTodayResponse.of(attended);
+    }
+
     private void validateSameFamily(Long guardianId, Long elderId) {
         Long guardianFamilyId = familyMemberRepository.findFamilyIdByUserId(guardianId)
                 .orElseThrow(FamilyMemberNotFoundException::new);

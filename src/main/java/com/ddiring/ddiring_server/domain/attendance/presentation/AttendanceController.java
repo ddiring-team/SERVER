@@ -36,6 +36,17 @@ public class AttendanceController {
         return ApiResponse.success(HttpStatus.CREATED, ResponseMessage.ATTENDANCE_CHECK_IN_SUCCESS.getMessage());
     }
 
+    @Operation(summary = "내 오늘 출석 여부 조회 (어르신)", description = "어르신이 오늘 출석 체크를 완료했는지 확인합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = AttendanceTodayResponse.class)))
+    })
+    @GetMapping("/me/today")
+    public ApiResponse<AttendanceTodayResponse> getMyTodayAttendance(@AuthenticationPrincipal Long userId) {
+        AttendanceTodayResponse response = attendanceService.getMyTodayAttendance(userId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.ATTENDANCE_TODAY_SUCCESS.getMessage(), response);
+    }
+
     @Operation(summary = "오늘 출석 여부 조회 (보호자)", description = "보호자가 같은 가족방 어르신의 오늘 출석 완료 여부를 조회합니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
