@@ -1,6 +1,7 @@
 package com.ddiring.ddiring_server.global.security;
 
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
+import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -35,8 +36,8 @@ public class TokenProvider {
 
     // 사용자 정보 기반으로 jwt 토큰 생성
     public String create(User userEntity) {
-        // 토큰 만료 기간을 현재 시각으로부터 1일 뒤로 설정
-        Date expiryDate = Date.from(Instant.now().plus(1, ChronoUnit.DAYS));
+        long expiryDays = userEntity.getRole() == Role.ELDER ? 30 : 1;
+        Date expiryDate = Date.from(Instant.now().plus(expiryDays, ChronoUnit.DAYS));
 
         // jwt 생성 및 반환
         return Jwts.builder()

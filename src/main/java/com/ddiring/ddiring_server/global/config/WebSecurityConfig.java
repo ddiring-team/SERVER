@@ -49,6 +49,7 @@ public class WebSecurityConfig {
                                 "/",
                                 "/api/s3/presigned-url",
                                 "api/users",
+                                "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**"

@@ -25,4 +25,7 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
 
     @EntityGraph(attributePaths = {"user"})
     List<FamilyMember> findAllByFamily_IdAndRoleAndStatus(Long familyId, Role role, MemberStatus status);
+
+    @Query("SELECT fm FROM FamilyMember fm JOIN FETCH fm.user u WHERE fm.family.inviteCode = :inviteCode AND u.name = :name AND fm.role = 'ELDER'")
+    Optional<FamilyMember> findElderByInviteCodeAndName(@Param("inviteCode") String inviteCode, @Param("name") String name);
 }
