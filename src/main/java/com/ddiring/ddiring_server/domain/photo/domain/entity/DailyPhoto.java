@@ -32,7 +32,7 @@ public class DailyPhoto extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String photoUrl;            // S3 이미지 URL
 
-    @Column(length = 200)
+    @Column(nullable = false, length = 200)
     private String caption;             // 사진 설명 텍스트
 
     @Column(nullable = false)
