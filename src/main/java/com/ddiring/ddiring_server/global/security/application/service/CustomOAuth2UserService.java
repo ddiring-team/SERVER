@@ -31,8 +31,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuthAttributes attributes = OAuthAttributes.of(registrationId, userNameAttributeName,
                 oAuth2User.getAttributes());
 
-        boolean isNewUser = !userRepository.existsByKakaoId(attributes.getId());
         User user = saveOrFind(attributes);
+        boolean isNewUser = user.getRole() == null;
 
         return new CustomUser(
                 user.getId(),

@@ -12,6 +12,7 @@ import com.ddiring.ddiring_server.domain.family.exception.NotFamilyOwnerExceptio
 import com.ddiring.ddiring_server.domain.family.presentation.dto.request.CreateFamilyRequest;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.CreateFamilyResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyStatusResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
@@ -51,6 +52,60 @@ class FamilyServiceTest {
     private final Long userId = 1L;
     private final Long familyId = 10L;
     private final Long memberId = 5L;
+
+    // ────────────── getFamilyStatus ──────────────
+
+    @DisplayName("가족방에 가입되어 있지 않으면 inFamily=false, status=null 을 반환한다")
+    @Test
+    void getFamilyStatus_미가입() {
+        // given
+        given(familyMemberRepository.findByUser_Id(userId)).willReturn(Optional.empty());
+
+        // when
+        FamilyStatusResponse response = familyService.getFamilyStatus(userId);
+
+        // then
+        assertThat(response.inFamily()).isFalse();
+        assertThat(response.status()).isNull();
+    }
+
+    @DisplayName("가족방에 가입했지만 승인 대기 중이면 inFamily=true, status=PENDING 을 반환한다")
+    @Test
+    void getFamilyStatus_가입_PENDING() {
+        // given
+        User user = User.builder().name("보호자").role(Role.GUARDIAN).build();
+        Family family = Family.builder().name("우리 가족").inviteCode("ABC123").createdBy(user).build();
+        FamilyMember member = FamilyMember.builder()
+                .family(family).user(user).role(Role.GUARDIAN).status(MemberStatus.PENDING).build();
+
+        given(familyMemberRepository.findByUser_Id(userId)).willReturn(Optional.of(member));
+
+        // when
+        FamilyStatusResponse response = familyService.getFamilyStatus(userId);
+
+        // then
+        assertThat(response.inFamily()).isTrue();
+        assertThat(response.status()).isEqualTo(MemberStatus.PENDING);
+    }
+
+    @DisplayName("가족방에 가입하고 승인까지 완료되면 inFamily=true, status=APPROVED 를 반환한다")
+    @Test
+    void getFamilyStatus_가입_APPROVED() {
+        // given
+        User user = User.builder().name("보호자").role(Role.GUARDIAN).build();
+        Family family = Family.builder().name("우리 가족").inviteCode("ABC123").createdBy(user).build();
+        FamilyMember member = FamilyMember.builder()
+                .family(family).user(user).role(Role.GUARDIAN).status(MemberStatus.APPROVED).build();
+
+        given(familyMemberRepository.findByUser_Id(userId)).willReturn(Optional.of(member));
+
+        // when
+        FamilyStatusResponse response = familyService.getFamilyStatus(userId);
+
+        // then
+        assertThat(response.inFamily()).isTrue();
+        assertThat(response.status()).isEqualTo(MemberStatus.APPROVED);
+    }
 
     // ────────────── createFamily ──────────────
 
