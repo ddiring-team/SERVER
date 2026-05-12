@@ -14,6 +14,7 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.request.JoinFam
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.CreateFamilyResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyMemberResponse;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyStatusResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
@@ -38,6 +39,13 @@ public class FamilyService {
     private final FamilyRepository familyRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    public FamilyStatusResponse getFamilyStatus(Long userId) {
+        return familyMemberRepository.findByUser_Id(userId)
+                .map(fm -> FamilyStatusResponse.inFamily(fm.getStatus()))
+                .orElse(FamilyStatusResponse.notInFamily());
+    }
 
     @Transactional
     public CreateFamilyResponse createFamily(Long userId, CreateFamilyRequest request) {

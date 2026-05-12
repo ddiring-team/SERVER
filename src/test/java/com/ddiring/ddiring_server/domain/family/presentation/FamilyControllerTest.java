@@ -7,6 +7,7 @@ import com.ddiring.ddiring_server.domain.family.exception.NotFamilyOwnerExceptio
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.CreateFamilyResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyMemberResponse;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyStatusResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.family.domain.entity.enums.MemberStatus;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
@@ -67,6 +68,53 @@ class FamilyControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    // ────────────── GET /api/families/status ──────────────
+
+    @DisplayName("가족방에 가입되어 있지 않으면 inFamily=false, status=null 을 반환한다")
+    @Test
+    void getFamilyStatus_미가입() throws Exception {
+        // given
+        given(familyService.getFamilyStatus(any())).willReturn(FamilyStatusResponse.notInFamily());
+
+        // when & then
+        mockMvc.perform(get("/api/families/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data.inFamily").value(false))
+                .andExpect(jsonPath("$.data.status").isEmpty());
+    }
+
+    @DisplayName("가족방에 가입했지만 승인 대기 중이면 inFamily=true, status=PENDING 을 반환한다")
+    @Test
+    void getFamilyStatus_PENDING() throws Exception {
+        // given
+        given(familyService.getFamilyStatus(any())).willReturn(FamilyStatusResponse.inFamily(MemberStatus.PENDING));
+
+        // when & then
+        mockMvc.perform(get("/api/families/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data.inFamily").value(true))
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
+    }
+
+    @DisplayName("가족방 승인까지 완료되면 inFamily=true, status=APPROVED 를 반환한다")
+    @Test
+    void getFamilyStatus_APPROVED() throws Exception {
+        // given
+        given(familyService.getFamilyStatus(any())).willReturn(FamilyStatusResponse.inFamily(MemberStatus.APPROVED));
+
+        // when & then
+        mockMvc.perform(get("/api/families/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data.inFamily").value(true))
+                .andExpect(jsonPath("$.data.status").value("APPROVED"));
+    }
 
     // ────────────── POST /api/families ──────────────
 
