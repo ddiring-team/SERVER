@@ -2,7 +2,7 @@ package com.ddiring.ddiring_server.domain.auth.application.service;
 
 import com.ddiring.ddiring_server.domain.auth.exception.*;
 import com.ddiring.ddiring_server.domain.auth.presentation.dto.request.*;
-import com.ddiring.ddiring_server.domain.auth.exception.DuplicatePhoneException;
+import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import com.ddiring.ddiring_server.domain.auth.presentation.dto.response.AuthResponse;
 import com.ddiring.ddiring_server.domain.family.domain.entity.Family;
 import com.ddiring.ddiring_server.domain.family.domain.entity.FamilyMember;
@@ -100,5 +100,33 @@ public class AuthService {
                 .orElseThrow(ElderNotFoundException::new);
 
         return AuthResponse.of(tokenProvider.create(member.getUser()), member.getUser().getRole().name());
+    }
+
+    @Transactional
+    public AuthResponse completeGuardianProfile(Long userId, KakaoGuardianCompleteRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (userRepository.existsByPhone(request.phone())) {
+            throw new DuplicatePhoneException();
+        }
+
+        user.completeProfile(request.name(), request.phone(), request.birthDate(), Role.GUARDIAN);
+
+        return AuthResponse.of(tokenProvider.create(user), Role.GUARDIAN.name());
+    }
+
+    @Transactional
+    public AuthResponse completeElderProfile(Long userId, KakaoElderCompleteRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (userRepository.existsByPhone(request.phone())) {
+            throw new DuplicatePhoneException();
+        }
+
+        user.completeProfile(request.name(), request.phone(), request.birthDate(), Role.ELDER);
+
+        return AuthResponse.of(tokenProvider.create(user), Role.ELDER.name());
     }
 }

@@ -47,6 +47,9 @@ dependencies {
     //s3
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.4.0'
 
+    // OAuth2 Client (카카오 소셜 로그인)
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
 
 }
 

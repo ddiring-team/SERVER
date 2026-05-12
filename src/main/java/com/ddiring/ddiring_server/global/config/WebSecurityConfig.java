@@ -1,12 +1,17 @@
 package com.ddiring.ddiring_server.global.config;
 
+import com.ddiring.ddiring_server.global.security.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.ddiring.ddiring_server.global.security.JwtAuthenticationFilter;
+import com.ddiring.ddiring_server.global.security.OAuthSuccessHandler;
+import com.ddiring.ddiring_server.global.security.RedirectUrlCookieFilter;
+import com.ddiring.ddiring_server.global.security.application.service.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -19,11 +24,14 @@ import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableAspectJAutoProxy // Spring Security 활성화
+@EnableAspectJAutoProxy
 public class WebSecurityConfig {
 
-    // jwt 기반 인증을 처리할 필터.
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuthSuccessHandler oAuthSuccessHandler;
+    private final RedirectUrlCookieFilter redirectUrlCookieFilter;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     // 보안 필터의 동작 방식을 정의.
     // 보안 필터 체인 정의 : 인증, 인가, 세션, 예외처리, jwt 필터 설정
@@ -44,9 +52,10 @@ public class WebSecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 세션 사용 안함 (jwt 기반이기 때문에) . 매우 중요
                 .authorizeHttpRequests(auth-> auth
-                        // Public endpoints (인증 불필요)
                         .requestMatchers(
                                 "/",
+                                "/oauth2/**",
+                                "/login/**",
                                 "/api/s3/presigned-url",
                                 "api/users",
                                 "/api/auth/**",
@@ -54,16 +63,18 @@ public class WebSecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**"
                         ).permitAll()
-                        // 나머지 모든 /api/** 경로는 인증 필요
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().authenticated())// 나머지 요청은 인증이 필요함
-                // jwt 필터를 UsernamePassWordFilter 뒤에 실행되도록 추가!
+                        .anyRequest().authenticated())
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(authorization -> authorization
+                                .authorizationRequestRepository(cookieAuthorizationRequestRepository))
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuthSuccessHandler))
                 .addFilterAfter(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                // 인증 실패시. 403 forbidden 반환 (유효하지 않은 토큰, 토큰 이없는 경우 등..)
+                .addFilterBefore(redirectUrlCookieFilter, OAuth2AuthorizationRequestRedirectFilter.class)
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new Http403ForbiddenEntryPoint())
                 );
-        // 리다이렉트 url 쿠키 필터를 oauth2 리다이렉트 필터 이전에 실행
         return http.build();
     }
 
