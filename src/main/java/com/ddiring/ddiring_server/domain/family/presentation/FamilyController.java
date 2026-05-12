@@ -30,8 +30,10 @@ public class FamilyController {
     private final FamilyService familyService;
 
     @Operation(summary = "가족방 가입 상태 조회", description = "내가 가족방에 가입돼 있는지, 승인 상태(PENDING/APPROVED)는 무엇인지 반환합니다. 미가입 시 inFamily=false, status=null.")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
-            content = @Content(schema = @Schema(implementation = FamilyStatusResponse.class)))
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = FamilyStatusResponse.class)))
+    })
     @GetMapping("/status")
     public ApiResponse<FamilyStatusResponse> getFamilyStatus(
             @AuthenticationPrincipal Long userId
