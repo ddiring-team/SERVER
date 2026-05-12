@@ -20,7 +20,7 @@ public class User extends BaseEntity {
     @Column(name = "user_id")
     private Long id;
 
-    @Column(nullable = false, length = 50)
+    @Column(length = 50)
     private String name;
 
     @Column(unique = true, length = 20)
@@ -33,10 +33,23 @@ public class User extends BaseEntity {
     private String password;            // 보호자 전용 (BCrypt 해시), 어르신은 null
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private Role role;
 
     private LocalDate birthDate;
 
+    @Column(unique = true, length = 100)
+    private String kakaoId;
 
+    @Column(length = 20)
+    private String authProvider;    // "local" | "kakao"
+
+    @Column(length = 500)
+    private String profileImageUrl;
+
+    public void completeProfile(String name, String phone, LocalDate birthDate, Role role) {
+        this.name = name;
+        this.phone = phone;
+        this.birthDate = birthDate;
+        this.role = role;
+    }
 }

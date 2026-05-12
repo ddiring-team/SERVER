@@ -2,6 +2,7 @@ package com.ddiring.ddiring_server.domain.family.presentation;
 
 import com.ddiring.ddiring_server.domain.family.application.service.FamilyService;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.request.CreateFamilyRequest;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.request.JoinFamilyRequest;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.CreateFamilyResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
@@ -42,6 +43,23 @@ public class FamilyController {
     ) {
         CreateFamilyResponse response = familyService.createFamily(userId, request);
         return ApiResponse.success(HttpStatus.CREATED, ResponseMessage.FAMILY_CREATE_SUCCESS.getMessage(), response);
+    }
+
+    @Operation(summary = "가족방 입장", description = "초대코드로 가족방에 입장합니다. 입장 후 보호자 승인이 필요합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "입장 요청 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "유효하지 않은 초대코드",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 가족방에 소속됨",
+                    content = @Content(schema = @Schema()))
+    })
+    @PostMapping("/join")
+    public ApiResponse<Void> joinFamily(
+            @AuthenticationPrincipal Long userId,
+            @RequestBody @Valid JoinFamilyRequest request
+    ) {
+        familyService.joinFamily(userId, request);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.FAMILY_JOIN_SUCCESS.getMessage());
     }
 
     @Operation(summary = "구성원 전체 목록 조회", description = "내 가족방의 모든 구성원을 조회합니다. 승인 대기(PENDING) 구성원도 포함됩니다.")

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Auth", description = "인증 API")
@@ -74,5 +75,34 @@ public class AuthController {
     @PostMapping("/elder/login")
     public ApiResponse<AuthResponse> elderLogin(@Valid @RequestBody ElderLoginRequest request) {
         return ApiResponse.success(HttpStatus.OK, "로그인이 완료되었습니다.", authService.elderLogin(request));
+    }
+
+    @Operation(summary = "카카오 보호자 프로필 완성",
+            description = "카카오 최초 로그인 후 보호자 이름·전화번호·생년월일을 등록합니다. 새 JWT를 반환합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "프로필 완성 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 사용 중인 전화번호")
+    })
+    @PostMapping("/kakao/complete/guardian")
+    public ApiResponse<AuthResponse> completeGuardianProfile(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody KakaoGuardianCompleteRequest request) {
+        return ApiResponse.success(HttpStatus.OK, "프로필 설정이 완료되었습니다.",
+                authService.completeGuardianProfile(userId, request));
+    }
+
+    @Operation(summary = "카카오 어르신 프로필 완성",
+            description = "카카오 최초 로그인 후 어르신 이름·전화번호·생년월일·초대코드를 등록합니다. 새 JWT를 반환합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "프로필 완성 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "존재하지 않는 초대코드"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 사용 중인 전화번호")
+    })
+    @PostMapping("/kakao/complete/elder")
+    public ApiResponse<AuthResponse> completeElderProfile(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody KakaoElderCompleteRequest request) {
+        return ApiResponse.success(HttpStatus.OK, "프로필 설정이 완료되었습니다.",
+                authService.completeElderProfile(userId, request));
     }
 }

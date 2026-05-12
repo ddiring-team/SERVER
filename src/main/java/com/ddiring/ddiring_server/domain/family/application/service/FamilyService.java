@@ -10,6 +10,7 @@ import com.ddiring.ddiring_server.domain.family.exception.FamilyMemberNotFoundEx
 import com.ddiring.ddiring_server.domain.family.exception.FamilyNotFoundException;
 import com.ddiring.ddiring_server.domain.family.exception.NotFamilyOwnerException;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.request.CreateFamilyRequest;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.request.JoinFamilyRequest;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.CreateFamilyResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyMemberResponse;
@@ -87,6 +88,26 @@ public class FamilyService {
                 .toList();
 
         return ElderListResponse.of(elders);
+    }
+
+    @Transactional
+    public void joinFamily(Long userId, JoinFamilyRequest request) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+
+        if (familyMemberRepository.existsByUser_Id(userId)) {
+            throw new AlreadyInFamilyException();
+        }
+
+        Family family = familyRepository.findByInviteCode(request.inviteCode())
+                .orElseThrow(FamilyNotFoundException::new);
+
+        familyMemberRepository.save(FamilyMember.builder()
+                .family(family)
+                .user(user)
+                .role(user.getRole())
+                .status(MemberStatus.PENDING)
+                .joinedAt(LocalDateTime.now())
+                .build());
     }
 
     @Transactional
