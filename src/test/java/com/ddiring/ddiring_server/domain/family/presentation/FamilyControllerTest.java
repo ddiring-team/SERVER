@@ -8,6 +8,7 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.response.Create
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyMemberResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyStatusResponse;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.response.InviteCodeResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.family.domain.entity.enums.MemberStatus;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
@@ -114,6 +115,35 @@ class FamilyControllerTest {
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.data.inFamily").value(true))
                 .andExpect(jsonPath("$.data.status").value("APPROVED"));
+    }
+
+    // ────────────── GET /api/families/invite-code ──────────────
+
+    @DisplayName("소속된 가족방의 초대코드를 조회하면 200 OK 와 초대코드를 반환한다")
+    @Test
+    void getInviteCode_성공() throws Exception {
+        // given
+        given(familyService.getInviteCode(any())).willReturn(InviteCodeResponse.of("ABC123"));
+
+        // when & then
+        mockMvc.perform(get("/api/families/invite-code"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data.inviteCode").value("ABC123"));
+    }
+
+    @DisplayName("소속된 가족방이 없을 때 초대코드를 조회하면 404 NOT FOUND 를 반환한다")
+    @Test
+    void getInviteCode_실패_가족방없음() throws Exception {
+        // given
+        given(familyService.getInviteCode(any())).willThrow(new FamilyNotFoundException());
+
+        // when & then
+        mockMvc.perform(get("/api/families/invite-code"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     // ────────────── POST /api/families ──────────────

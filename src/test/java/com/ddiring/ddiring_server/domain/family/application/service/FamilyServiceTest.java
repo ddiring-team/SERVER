@@ -13,6 +13,7 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.request.CreateF
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.CreateFamilyResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyStatusResponse;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.response.InviteCodeResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
@@ -105,6 +106,37 @@ class FamilyServiceTest {
         // then
         assertThat(response.inFamily()).isTrue();
         assertThat(response.status()).isEqualTo(MemberStatus.APPROVED);
+    }
+
+    // ────────────── getInviteCode ──────────────
+
+    @DisplayName("소속된 가족방의 초대코드를 조회하면 해당 초대코드를 반환한다")
+    @Test
+    void getInviteCode_성공() {
+        // given
+        User user = User.builder().name("보호자").role(Role.GUARDIAN).build();
+        Family family = Family.builder().name("우리 가족").inviteCode("ABC123").createdBy(user).build();
+        ReflectionTestUtils.setField(family, "id", familyId);
+
+        given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
+        given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
+
+        // when
+        InviteCodeResponse response = familyService.getInviteCode(userId);
+
+        // then
+        assertThat(response.inviteCode()).isEqualTo("ABC123");
+    }
+
+    @DisplayName("가족방에 소속되지 않은 유저가 초대코드를 조회하면 FamilyNotFoundException 이 발생한다")
+    @Test
+    void getInviteCode_실패_가족방없음() {
+        // given
+        given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> familyService.getInviteCode(userId))
+                .isInstanceOf(FamilyNotFoundException.class);
     }
 
     // ────────────── createFamily ──────────────

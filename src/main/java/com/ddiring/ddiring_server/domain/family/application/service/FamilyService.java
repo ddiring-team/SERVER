@@ -15,6 +15,7 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.response.Create
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyMemberResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyStatusResponse;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.response.InviteCodeResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
@@ -45,6 +46,17 @@ public class FamilyService {
         return familyMemberRepository.findByUser_Id(userId)
                 .map(fm -> FamilyStatusResponse.inFamily(fm.getStatus()))
                 .orElse(FamilyStatusResponse.notInFamily());
+    }
+
+    @Transactional(readOnly = true)
+    public InviteCodeResponse getInviteCode(Long userId) {
+        Long familyId = familyMemberRepository.findFamilyIdByUserId(userId)
+                .orElseThrow(FamilyNotFoundException::new);
+
+        Family family = familyRepository.findById(familyId)
+                .orElseThrow(FamilyNotFoundException::new);
+
+        return InviteCodeResponse.of(family.getInviteCode());
     }
 
     @Transactional
