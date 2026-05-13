@@ -6,6 +6,7 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.request.JoinFam
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.CreateFamilyResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.ElderListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.FamilyStatusResponse;
+import com.ddiring.ddiring_server.domain.family.presentation.dto.response.InviteCodeResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.family.presentation.message.ResponseMessage;
 import com.ddiring.ddiring_server.global.common.response.ApiResponse;
@@ -40,6 +41,21 @@ public class FamilyController {
     ) {
         FamilyStatusResponse response = familyService.getFamilyStatus(userId);
         return ApiResponse.success(HttpStatus.OK, ResponseMessage.FAMILY_STATUS_SUCCESS.getMessage(), response);
+    }
+
+    @Operation(summary = "초대코드 조회", description = "내가 소속된 가족방의 초대코드를 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = InviteCodeResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "소속된 가족방 없음",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping("/invite-code")
+    public ApiResponse<InviteCodeResponse> getInviteCode(
+            @AuthenticationPrincipal Long userId
+    ) {
+        InviteCodeResponse response = familyService.getInviteCode(userId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.INVITE_CODE_SUCCESS.getMessage(), response);
     }
 
     @Operation(summary = "가족방 생성", description = "새 가족방을 만들고 6자리 초대코드를 발급합니다. 이미 가족방에 소속된 경우 생성 불가합니다.")
