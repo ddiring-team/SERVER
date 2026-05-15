@@ -200,7 +200,7 @@ class FamilyControllerTest {
     void getMembers_성공() throws Exception {
         // given
         FamilyMemberResponse member = new FamilyMemberResponse(
-                1L, 2L, "보호자", Role.GUARDIAN, MemberStatus.APPROVED, LocalDateTime.now());
+                1L, 2L, "보호자", "010-1234-5678", Role.GUARDIAN, MemberStatus.APPROVED, LocalDateTime.now());
         given(familyService.getMembers(any())).willReturn(MemberListResponse.of(List.of(member)));
 
         // when & then
@@ -233,7 +233,7 @@ class FamilyControllerTest {
     void getConnectedElders_성공() throws Exception {
         // given
         FamilyMemberResponse elder = new FamilyMemberResponse(
-                2L, 3L, "어르신", Role.ELDER, MemberStatus.APPROVED, LocalDateTime.now());
+                2L, 3L, "어르신", "010-9876-5432", Role.ELDER, MemberStatus.APPROVED, LocalDateTime.now());
         given(familyService.getConnectedElders(any())).willReturn(ElderListResponse.of(List.of(elder)));
 
         // when & then
