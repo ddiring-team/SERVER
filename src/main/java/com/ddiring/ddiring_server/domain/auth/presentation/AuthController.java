@@ -105,4 +105,13 @@ public class AuthController {
         return ApiResponse.success(HttpStatus.OK, "프로필 설정이 완료되었습니다.",
                 authService.completeElderProfile(userId, request));
     }
+
+    @Operation(summary = "로그아웃", description = "클라이언트 측 토큰을 삭제하도록 안내합니다. 서버는 별도의 토큰 무효화 없이 200을 반환합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그아웃 성공")
+    })
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout() {
+        return ApiResponse.success(HttpStatus.OK, "로그아웃되었습니다.", null);
+    }
 }

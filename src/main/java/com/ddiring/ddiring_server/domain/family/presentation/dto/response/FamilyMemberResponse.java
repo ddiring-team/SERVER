@@ -15,6 +15,8 @@ public record FamilyMemberResponse(
         Long userId,
         @Schema(description = "사용자 이름", example = "홍길동")
         String name,
+        @Schema(description = "전화번호", example = "010-1234-5678")
+        String phone,
         @Schema(description = "역할 (GUARDIAN: 보호자, ELDER: 어르신)", example = "GUARDIAN")
         Role role,
         @Schema(description = "가입 상태 (PENDING: 대기, APPROVED: 승인)", example = "APPROVED")
@@ -27,6 +29,7 @@ public record FamilyMemberResponse(
                 member.getId(),
                 member.getUser().getId(),
                 member.getUser().getName(),
+                member.getUser().getPhone(),
                 member.getRole(),
                 member.getStatus(),
                 member.getJoinedAt()
