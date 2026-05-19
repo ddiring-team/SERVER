@@ -61,7 +61,8 @@ jobs:
           script_stop: true
           script: | # 실행중인 컨테이너 중지 및 삭제 / 실행중인 컨테이너 없다면 true 로 패스 . run 에선, ecr 의 이미지 기반으로 ddiring-server 라는 이름을 가진 컨테이너를 만들고 실행한다.
             aws ecr get-login-password --region ap-northeast-2 | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            sudo docker network create ddiring-network || true
             sudo docker stop ddiring-server || true
             sudo docker rm ddiring-server || true
             sudo docker pull ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
-            sudo docker run -d --name ddiring-server -p 8080:8080 -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
+            sudo docker run -d --name ddiring-server -p 8080:8080 --network ddiring-network -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
