@@ -8,6 +8,7 @@ import com.ddiring.ddiring_server.global.common.response.ApiResponse;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,20 @@ public class GlobalExceptionHandler {
                         fe.getField(),
                         fe.getDefaultMessage(),
                         fe.getRejectedValue()
+                ))
+                .toList();
+
+        return buildError(errorCode.getStatus(), errorCode.getMessage(), errors);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<List<ValidErrorResponse>>> handleConstraintViolation(ConstraintViolationException e) {
+        ErrorCode errorCode = ErrorCode.INVALID_ARGUMENT;
+        List<ValidErrorResponse> errors = e.getConstraintViolations().stream()
+                .map(v -> ValidErrorResponse.of(
+                        v.getPropertyPath().toString(),
+                        v.getMessage(),
+                        v.getInvalidValue()
                 ))
                 .toList();
 

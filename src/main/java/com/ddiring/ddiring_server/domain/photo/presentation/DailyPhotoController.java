@@ -14,10 +14,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -27,6 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/photos")
 @RequiredArgsConstructor
+@Validated
 public class DailyPhotoController {
 
     private final DailyPhotoService dailyPhotoService;
@@ -75,9 +79,9 @@ public class DailyPhotoController {
     public ApiResponse<DailyPhotoFeedResponse> getDailyPhotoFeed(
             @AuthenticationPrincipal Long userId,
             @Parameter(description = "이전 응답의 nextCursor 값 (첫 페이지는 생략)")
-            @RequestParam(required = false) Long cursor,
-            @Parameter(description = "페이지 크기 (기본값: 20)")
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(required = false) @Min(1) Long cursor,
+            @Parameter(description = "페이지 크기 (1~50, 기본값: 20)")
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
         DailyPhotoFeedResponse response = dailyPhotoService.getDailyPhotoFeed(userId, cursor, size);
         return ApiResponse.success(HttpStatus.OK, ResponseMessage.DAILY_PHOTO_FEED_SUCCESS.getMessage(), response);
