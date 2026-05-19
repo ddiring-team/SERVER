@@ -3,6 +3,7 @@ package com.ddiring.ddiring_server.domain.photo.presentation;
 import com.ddiring.ddiring_server.domain.photo.application.service.DailyPhotoService;
 import com.ddiring.ddiring_server.domain.photo.domain.entity.enums.EmojiType;
 import com.ddiring.ddiring_server.domain.photo.presentation.dto.request.CreateDailyPhotoRequest;
+import com.ddiring.ddiring_server.domain.photo.presentation.dto.response.DailyPhotoFeedResponse;
 import com.ddiring.ddiring_server.domain.photo.presentation.dto.response.DailyPhotoResponse;
 import com.ddiring.ddiring_server.domain.photo.presentation.message.ResponseMessage;
 import com.ddiring.ddiring_server.global.common.response.ApiResponse;
@@ -13,10 +14,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -26,16 +30,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/photos")
 @RequiredArgsConstructor
+@Validated
 public class DailyPhotoController {
 
     private final DailyPhotoService dailyPhotoService;
 
-    @Operation(summary = "일상 남기기", description = "오늘의 일상 사진을 가족방에 공유합니다. 하루에 한 장만 가능합니다.")
+    @Operation(summary = "일상 남기기", description = "오늘의 일상 사진을 가족방에 공유합니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "일상 공유 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "가족방 정보 없음",
-                    content = @Content(schema = @Schema())),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "오늘 이미 일상 공유 완료",
                     content = @Content(schema = @Schema()))
     })
     @PostMapping
@@ -63,6 +66,25 @@ public class DailyPhotoController {
         LocalDate targetDate = (date != null) ? date : LocalDate.now();
         List<DailyPhotoResponse> response = dailyPhotoService.getDailyPhotos(userId, targetDate);
         return ApiResponse.success(HttpStatus.OK, ResponseMessage.DAILY_PHOTO_LIST_SUCCESS.getMessage(), response);
+    }
+
+    @Operation(summary = "가족방 피드 조회 (무한 스크롤)", description = "가족방의 모든 게시글을 최신순으로 커서 기반 무한 스크롤 조회합니다. cursor 미입력 시 첫 페이지를 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = DailyPhotoFeedResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "가족방 정보 없음",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping("/feed")
+    public ApiResponse<DailyPhotoFeedResponse> getDailyPhotoFeed(
+            @AuthenticationPrincipal Long userId,
+            @Parameter(description = "이전 응답의 nextCursor 값 (첫 페이지는 생략)")
+            @RequestParam(required = false) @Min(1) Long cursor,
+            @Parameter(description = "페이지 크기 (1~50, 기본값: 20)")
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
+    ) {
+        DailyPhotoFeedResponse response = dailyPhotoService.getDailyPhotoFeed(userId, cursor, size);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.DAILY_PHOTO_FEED_SUCCESS.getMessage(), response);
     }
 
     @Operation(summary = "이모지 반응 토글", description = "게시글에 이모지 반응을 추가하거나 취소합니다. 같은 이모지를 다시 누르면 취소됩니다.")

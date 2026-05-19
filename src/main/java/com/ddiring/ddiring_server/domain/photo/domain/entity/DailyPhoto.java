@@ -13,8 +13,7 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "daily_photo",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "family_id", "taken_date"}))
+@Table(name = "daily_photo")
 public class DailyPhoto extends BaseEntity {
 
     @Id
@@ -36,5 +35,5 @@ public class DailyPhoto extends BaseEntity {
     private String caption;             // 사진 설명 텍스트
 
     @Column(nullable = false)
-    private LocalDate takenDate;        // 캘린더 기준 날짜 (하루 1장 제한 기준)
+    private LocalDate takenDate;        // 캘린더 기준 날짜
 }

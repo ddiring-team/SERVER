@@ -10,10 +10,10 @@ import com.ddiring.ddiring_server.domain.photo.domain.entity.PhotoReaction;
 import com.ddiring.ddiring_server.domain.photo.domain.entity.enums.EmojiType;
 import com.ddiring.ddiring_server.domain.photo.domain.repository.DailyPhotoRepository;
 import com.ddiring.ddiring_server.domain.photo.domain.repository.PhotoReactionRepository;
-import com.ddiring.ddiring_server.domain.photo.exception.AlreadyPostedTodayException;
 import com.ddiring.ddiring_server.domain.photo.exception.DailyPhotoNotFoundException;
 import com.ddiring.ddiring_server.domain.photo.exception.PhotoAccessDeniedException;
 import com.ddiring.ddiring_server.domain.photo.presentation.dto.request.CreateDailyPhotoRequest;
+import com.ddiring.ddiring_server.domain.photo.presentation.dto.response.DailyPhotoFeedResponse;
 import com.ddiring.ddiring_server.domain.photo.presentation.dto.response.DailyPhotoResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
@@ -21,6 +21,9 @@ import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -45,10 +48,6 @@ public class DailyPhotoService {
                 .orElseThrow(FamilyMemberNotFoundException::new);
 
         LocalDate today = LocalDate.now();
-
-        if (dailyPhotoRepository.existsByUser_IdAndFamily_IdAndTakenDate(userId, familyId, today)) {
-            throw new AlreadyPostedTodayException();
-        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
@@ -86,6 +85,40 @@ public class DailyPhotoService {
         return photos.stream()
                 .map(photo -> toResponse(photo, userId, reactionsByPhotoId.getOrDefault(photo.getId(), List.of())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public DailyPhotoFeedResponse getDailyPhotoFeed(Long userId, Long cursor, int size) {
+        Long familyId = familyMemberRepository.findFamilyIdByUserId(userId)
+                .orElseThrow(FamilyMemberNotFoundException::new);
+
+        Pageable pageable = PageRequest.of(0, size + 1);
+
+        List<DailyPhoto> photos = (cursor == null)
+                ? dailyPhotoRepository.findByFamily_IdOrderByIdDesc(familyId, pageable)
+                : dailyPhotoRepository.findByFamily_IdAndIdLessThanOrderByIdDesc(familyId, cursor, pageable);
+
+        boolean hasNext = photos.size() > size;
+        if (hasNext) {
+            photos = photos.subList(0, size);
+        }
+
+        if (photos.isEmpty()) {
+            return new DailyPhotoFeedResponse(List.of(), null, false);
+        }
+
+        List<Long> photoIds = photos.stream().map(DailyPhoto::getId).toList();
+        Map<Long, List<PhotoReaction>> reactionsByPhotoId = photoReactionRepository
+                .findAllWithUserByPhotoIdIn(photoIds)
+                .stream()
+                .collect(Collectors.groupingBy(r -> r.getDailyPhoto().getId()));
+
+        List<DailyPhotoResponse> responses = photos.stream()
+                .map(p -> toResponse(p, userId, reactionsByPhotoId.getOrDefault(p.getId(), List.of())))
+                .toList();
+
+        Long nextCursor = hasNext ? photos.get(photos.size() - 1).getId() : null;
+        return new DailyPhotoFeedResponse(responses, nextCursor, hasNext);
     }
 
     @Transactional
