@@ -10,8 +10,8 @@ import com.ddiring.ddiring_server.domain.photo.domain.entity.PhotoReaction;
 import com.ddiring.ddiring_server.domain.photo.domain.entity.enums.EmojiType;
 import com.ddiring.ddiring_server.domain.photo.domain.repository.DailyPhotoRepository;
 import com.ddiring.ddiring_server.domain.photo.domain.repository.PhotoReactionRepository;
-import com.ddiring.ddiring_server.domain.photo.exception.AlreadyPostedTodayException;
 import com.ddiring.ddiring_server.domain.photo.exception.DailyPhotoNotFoundException;
+import com.ddiring.ddiring_server.domain.photo.presentation.dto.response.DailyPhotoFeedResponse;
 import com.ddiring.ddiring_server.domain.photo.exception.PhotoAccessDeniedException;
 import com.ddiring.ddiring_server.domain.photo.presentation.dto.request.CreateDailyPhotoRequest;
 import com.ddiring.ddiring_server.domain.photo.presentation.dto.response.DailyPhotoResponse;
@@ -26,6 +26,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +35,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -63,8 +66,6 @@ class DailyPhotoServiceTest {
         Family family = Family.builder().inviteCode("ABC123").createdBy(user).build();
 
         given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
-        given(dailyPhotoRepository.existsByUser_IdAndFamily_IdAndTakenDate(userId, familyId, LocalDate.now()))
-                .willReturn(false);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));
 
@@ -85,22 +86,6 @@ class DailyPhotoServiceTest {
         assertThatThrownBy(() -> dailyPhotoService.createDailyPhoto(userId,
                 new CreateDailyPhotoRequest("https://s3.example.com/photo.jpg", "오늘도 좋은 하루")))
                 .isInstanceOf(FamilyMemberNotFoundException.class);
-
-        verify(dailyPhotoRepository, never()).save(any());
-    }
-
-    @DisplayName("오늘 이미 게시글을 작성한 유저가 다시 작성하면 AlreadyPostedTodayException 이 발생한다")
-    @Test
-    void createDailyPhoto_실패_오늘이미작성() {
-        // given
-        given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
-        given(dailyPhotoRepository.existsByUser_IdAndFamily_IdAndTakenDate(userId, familyId, LocalDate.now()))
-                .willReturn(true);
-
-        // when & then
-        assertThatThrownBy(() -> dailyPhotoService.createDailyPhoto(userId,
-                new CreateDailyPhotoRequest("https://s3.example.com/photo.jpg", "오늘도 좋은 하루")))
-                .isInstanceOf(AlreadyPostedTodayException.class);
 
         verify(dailyPhotoRepository, never()).save(any());
     }
@@ -209,6 +194,99 @@ class DailyPhotoServiceTest {
 
         // when & then
         assertThatThrownBy(() -> dailyPhotoService.getDailyPhotos(userId, LocalDate.now()))
+                .isInstanceOf(FamilyMemberNotFoundException.class);
+    }
+
+    // ──────────── getDailyPhotoFeed ────────────
+
+    @DisplayName("cursor 없이 피드를 조회하면 최신 게시글부터 size 개수만큼 반환된다")
+    @Test
+    void getDailyPhotoFeed_성공_첫페이지() {
+        // given
+        User author = User.builder().name("김현수").role(Role.GUARDIAN).build();
+        Family family = Family.builder().inviteCode("ABC123").createdBy(author).build();
+        ReflectionTestUtils.setField(family, "id", familyId);
+
+        DailyPhoto photo = DailyPhoto.builder()
+                .family(family).user(author)
+                .photoUrl("https://s3.example.com/photo.jpg")
+                .caption("첫 게시글")
+                .takenDate(LocalDate.now())
+                .build();
+        ReflectionTestUtils.setField(photo, "id", photoId);
+
+        given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
+        given(dailyPhotoRepository.findByFamily_IdOrderByIdDesc(eq(familyId), any(Pageable.class)))
+                .willReturn(List.of(photo));
+        given(photoReactionRepository.findAllWithUserByPhotoIdIn(List.of(photoId)))
+                .willReturn(List.of());
+
+        // when
+        DailyPhotoFeedResponse response = dailyPhotoService.getDailyPhotoFeed(userId, null, 20);
+
+        // then
+        assertThat(response.photos()).hasSize(1);
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
+    @DisplayName("cursor 를 전달하면 해당 ID 이전 게시글을 반환한다")
+    @Test
+    void getDailyPhotoFeed_성공_커서페이지() {
+        // given
+        Long cursor = 50L;
+        User author = User.builder().name("박성제").role(Role.ELDER).build();
+        Family family = Family.builder().inviteCode("ABC123").createdBy(author).build();
+        ReflectionTestUtils.setField(family, "id", familyId);
+
+        DailyPhoto photo = DailyPhoto.builder()
+                .family(family).user(author)
+                .photoUrl("https://s3.example.com/photo2.jpg")
+                .caption("두 번째 게시글")
+                .takenDate(LocalDate.now())
+                .build();
+        ReflectionTestUtils.setField(photo, "id", 30L);
+
+        given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
+        given(dailyPhotoRepository.findByFamily_IdAndIdLessThanOrderByIdDesc(eq(familyId), eq(cursor), any(Pageable.class)))
+                .willReturn(List.of(photo));
+        given(photoReactionRepository.findAllWithUserByPhotoIdIn(List.of(30L)))
+                .willReturn(List.of());
+
+        // when
+        DailyPhotoFeedResponse response = dailyPhotoService.getDailyPhotoFeed(userId, cursor, 20);
+
+        // then
+        assertThat(response.photos()).hasSize(1);
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
+    @DisplayName("게시글이 없는 피드를 조회하면 빈 목록을 반환한다")
+    @Test
+    void getDailyPhotoFeed_성공_빈목록() {
+        // given
+        given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
+        given(dailyPhotoRepository.findByFamily_IdOrderByIdDesc(eq(familyId), any(Pageable.class)))
+                .willReturn(List.of());
+
+        // when
+        DailyPhotoFeedResponse response = dailyPhotoService.getDailyPhotoFeed(userId, null, 20);
+
+        // then
+        assertThat(response.photos()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
+    @DisplayName("가족방에 속하지 않은 유저가 피드를 조회하면 FamilyMemberNotFoundException 이 발생한다")
+    @Test
+    void getDailyPhotoFeed_실패_가족방없음() {
+        // given
+        given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> dailyPhotoService.getDailyPhotoFeed(userId, null, 20))
                 .isInstanceOf(FamilyMemberNotFoundException.class);
     }
 
