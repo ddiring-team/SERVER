@@ -24,9 +24,12 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
-    @Operation(summary = "출석 체크 (어르신)", description = "어르신이 오늘의 출석을 체크합니다. 하루에 한 번만 가능합니다.")
+    @Operation(
+            summary = "출석 체크 (어르신)",
+            description = "어르신이 오늘의 출석을 체크합니다. 하루에 한 번만 가능하며, 출석 완료 시 같은 가족방의 보호자에게 FCM 푸시 알림이 발송됩니다."
+    )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출석 체크 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출석 체크 성공 (보호자에게 FCM 알림 발송)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "오늘 이미 출석 체크 완료",
                     content = @Content(schema = @Schema()))
     })

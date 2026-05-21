@@ -65,4 +65,4 @@ jobs:
             sudo docker stop ddiring-server || true
             sudo docker rm ddiring-server || true
             sudo docker pull ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
-            sudo docker run -d --name ddiring-server -p 8080:8080 --network ddiring-network -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
+            sudo docker run -d --name ddiring-server -p 8080:8080 --network ddiring-network -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" -e FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
