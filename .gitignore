@@ -40,3 +40,4 @@ out/
 application.yml
 application-local.yml
 application-dev.yml
+firebase-service-account.json

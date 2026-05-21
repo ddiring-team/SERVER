@@ -46,10 +46,17 @@ public class User extends BaseEntity {
     @Column(length = 500)
     private String profileImageUrl;
 
+    @Column(length = 500)
+    private String fcmToken;
+
     public void completeProfile(String name, String phone, LocalDate birthDate, Role role) {
         this.name = name;
         this.phone = phone;
         this.birthDate = birthDate;
         this.role = role;
+    }
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }

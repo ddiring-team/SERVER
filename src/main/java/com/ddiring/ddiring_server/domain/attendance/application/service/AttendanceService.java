@@ -11,6 +11,7 @@ import com.ddiring.ddiring_server.domain.family.exception.FamilyMemberNotFoundEx
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
+import com.ddiring.ddiring_server.global.notification.FcmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public void checkIn(Long userId) {
@@ -43,6 +45,13 @@ public class AttendanceService {
                         .checkedAt(today)
                         .build()
         );
+
+        familyMemberRepository.findFamilyIdByUserId(userId)
+                .ifPresent(familyId -> {
+            List<String> guardianTokens = familyMemberRepository.findGuardianFcmTokensByFamilyId(familyId);
+            String elderName = user.getName() != null ? user.getName() : "어르신";
+            fcmService.sendToTokens(guardianTokens, "출석 완료 알림", elderName + "님이 오늘 출석을 완료했어요!");
+        });
     }
 
     @Transactional(readOnly = true)
