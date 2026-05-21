@@ -2,7 +2,7 @@ package com.ddiring.ddiring_server.global.notification;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,20 +22,18 @@ public class FcmService {
             return;
         }
 
-        for (String token : tokens) {
-            try {
-                Message message = Message.builder()
-                        .setToken(token)
-                        .setNotification(Notification.builder()
-                                .setTitle(title)
-                                .setBody(body)
-                                .build())
-                        .build();
-                String response = FirebaseMessaging.getInstance().send(message);
-                log.info("FCM 전송 성공: {}", response);
-            } catch (Exception e) {
-                log.warn("FCM 전송 실패 (token={}...): {}", token.substring(0, Math.min(10, token.length())), e.getMessage());
-            }
+        try {
+            MulticastMessage message = MulticastMessage.builder()
+                    .addAllTokens(tokens)
+                    .setNotification(Notification.builder()
+                            .setTitle(title)
+                            .setBody(body)
+                            .build())
+                    .build();
+            var response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+            log.info("FCM 전송 완료 — 성공: {}, 실패: {}", response.getSuccessCount(), response.getFailureCount());
+        } catch (Exception e) {
+            log.warn("FCM 전송 실패: {}", e.getMessage());
         }
     }
 }

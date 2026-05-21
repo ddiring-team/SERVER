@@ -3,11 +3,12 @@ package com.ddiring.ddiring_server.global.config;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 
-import javax.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,12 +49,13 @@ public class FirebaseConfig {
         }
     }
 
-    private InputStream resolveCredentialStream() {
+    private InputStream resolveCredentialStream() throws IOException {
         // 환경변수 우선 (배포 환경)
         if (serviceAccountJson != null && !serviceAccountJson.isBlank()) {
             return new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8));
         }
-        // 파일 폴백 (로컬 개발)
-        return getClass().getClassLoader().getResourceAsStream(serviceAccountPath);
+        // 파일 폴백 (로컬 개발) — ClassPathResource로 classpath: 접두사 처리
+        ClassPathResource resource = new ClassPathResource(serviceAccountPath);
+        return resource.exists() ? resource.getInputStream() : null;
     }
 }

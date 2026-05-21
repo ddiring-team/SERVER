@@ -42,4 +42,4 @@ jwt:
   secret-key: ${JWT_SECRET_KEY}
 
 firebase:
-  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY:classpath:firebase-service-account.json}
+  service-account-path: firebase-service-account.json
