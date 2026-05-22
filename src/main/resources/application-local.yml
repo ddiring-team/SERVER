@@ -43,3 +43,6 @@ jwt:
 
 firebase:
   service-account-path: firebase-service-account.json
+
+fastapi:
+  base-url: http://localhost:8000

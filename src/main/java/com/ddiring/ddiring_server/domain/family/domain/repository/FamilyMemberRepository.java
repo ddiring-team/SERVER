@@ -33,4 +33,7 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
 
     @Query("SELECT u.fcmToken FROM FamilyMember fm JOIN fm.user u WHERE fm.family.id = :familyId AND fm.role = 'GUARDIAN' AND fm.status = 'APPROVED' AND u.fcmToken IS NOT NULL")
     List<String> findGuardianFcmTokensByFamilyId(@Param("familyId") Long familyId);
+
+    @Query("SELECT u.fcmToken FROM FamilyMember fm JOIN fm.user u WHERE fm.family.id = :familyId AND fm.role = 'ELDER' AND fm.status = 'APPROVED' AND u.fcmToken IS NOT NULL")
+    List<String> findElderFcmTokensByFamilyId(@Param("familyId") Long familyId);
 }

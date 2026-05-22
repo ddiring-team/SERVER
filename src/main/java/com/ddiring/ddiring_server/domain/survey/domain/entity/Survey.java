@@ -29,6 +29,11 @@ public class Survey extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String title;               // 설문 제목
 
-    @Column(columnDefinition = "TEXT")
-    private String description;         // 설문 설명
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;    // 활성 여부
+
+    public void toggleActive() {
+        this.isActive = !this.isActive;
+    }
 }
