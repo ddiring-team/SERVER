@@ -18,6 +18,8 @@ import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.SubmitA
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
@@ -70,7 +72,13 @@ public class SurveyAnswerService {
         answerRepository.saveAll(entities);
         session.complete();
 
-        dailySummaryService.generateAndSave(sessionId);
+        // 부모 트랜잭션 커밋 완료 후 비동기 실행 — 커밋 전 실행 시 답변 데이터 미조회 방지
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                dailySummaryService.generateAndSave(sessionId);
+            }
+        });
     }
 
     private List<SurveyAnswer> buildAnswers(

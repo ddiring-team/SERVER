@@ -30,34 +30,45 @@ public class DailySummaryService {
     private final ObjectMapper objectMapper;
 
     @Async
-    @Transactional
     public void generateAndSave(Long sessionId) {
-        SurveySession session = sessionRepository.findById(sessionId).orElse(null);
-        if (session == null) return;
+        // 1단계: DB 조회 (트랜잭션 종료 후 커넥션 반환)
+        DailySummaryRequest request = buildRequest(sessionId);
+        if (request == null) return;
 
-        String elderName = session.getElder().getName();
-        String date = session.getSessionDate().toString();
-
-        Map<String, String> responses = buildResponsesMap(sessionId);
-        if (responses.isEmpty()) {
-            log.warn("일일 요약 생성 건너뜀: 세션 {} 에 카테고리 답변 없음", sessionId);
-            return;
-        }
-
-        DailySummaryRequest request = new DailySummaryRequest(
-                new DailySummaryRequest.ElderProfile(elderName),
-                new DailySummaryRequest.DailyResponse(date, responses)
-        );
-
+        // 2단계: 외부 API 호출 (트랜잭션 밖)
         Optional<DailySummaryResponse> result = fastApiSurveyClient.getDailySummary(request);
         if (result.isEmpty()) {
             log.warn("일일 요약 생성 실패: 세션 {}", sessionId);
             return;
         }
 
+        // 3단계: 결과 저장 (별도 트랜잭션)
         DailySummaryResponse response = result.get();
-        String highlightsJson = toJson(response.highlights());
-        session.updateDailySummary(response.summary(), highlightsJson);
+        saveSummary(sessionId, response.summary(), toJson(response.highlights()));
+    }
+
+    @Transactional(readOnly = true)
+    public DailySummaryRequest buildRequest(Long sessionId) {
+        SurveySession session = sessionRepository.findById(sessionId).orElse(null);
+        if (session == null) return null;
+
+        Map<String, String> responses = buildResponsesMap(sessionId);
+        if (responses.isEmpty()) {
+            log.warn("일일 요약 생성 건너뜀: 세션 {} 에 카테고리 답변 없음", sessionId);
+            return null;
+        }
+
+        return new DailySummaryRequest(
+                new DailySummaryRequest.ElderProfile(session.getElder().getName()),
+                new DailySummaryRequest.DailyResponse(session.getSessionDate().toString(), responses)
+        );
+    }
+
+    @Transactional
+    public void saveSummary(Long sessionId, String summary, String highlightsJson) {
+        sessionRepository.findById(sessionId).ifPresent(session ->
+                session.updateDailySummary(summary, highlightsJson)
+        );
     }
 
     private Map<String, String> buildResponsesMap(Long sessionId) {
