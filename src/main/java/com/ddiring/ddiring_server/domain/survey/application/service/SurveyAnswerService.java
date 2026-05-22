@@ -53,8 +53,8 @@ public class SurveyAnswerService {
                 .collect(Collectors.toMap(SurveyQuestion::getId, Function.identity()));
 
         List<Long> optionIds = answers.stream()
-                .filter(a -> a.selectedOptionId() != null)
-                .map(SubmitAnswerRequest::selectedOptionId)
+                .filter(a -> a.selectedOptionIds() != null)
+                .flatMap(a -> a.selectedOptionIds().stream())
                 .toList();
 
         Map<Long, SurveyQuestionOption> optionMap = optionIds.isEmpty()
@@ -63,14 +63,14 @@ public class SurveyAnswerService {
                         .collect(Collectors.toMap(SurveyQuestionOption::getId, Function.identity()));
 
         List<SurveyAnswer> entities = answers.stream()
-                .map(req -> buildAnswer(req, session, questionMap, optionMap))
+                .flatMap(req -> buildAnswers(req, session, questionMap, optionMap).stream())
                 .toList();
 
         answerRepository.saveAll(entities);
         session.complete();
     }
 
-    private SurveyAnswer buildAnswer(
+    private List<SurveyAnswer> buildAnswers(
             SubmitAnswerRequest req,
             SurveySession session,
             Map<Long, SurveyQuestion> questionMap,
@@ -85,25 +85,46 @@ public class SurveyAnswerService {
             if (req.answerText() == null || req.answerText().isBlank()) {
                 throw new InvalidAnswerFormatException();
             }
-            return SurveyAnswer.builder()
+            return List.of(SurveyAnswer.builder()
                     .session(session)
                     .question(question)
                     .answerText(req.answerText())
-                    .build();
+                    .build());
         }
 
-        // YES_NO / SCALE / MULTIPLE
-        if (req.selectedOptionId() == null) {
+        if (question.getQuestionType() == QuestionType.MULTIPLE) {
+            List<Long> ids = req.selectedOptionIds();
+            if (ids == null || ids.isEmpty()) {
+                throw new InvalidAnswerFormatException();
+            }
+            return ids.stream()
+                    .map(id -> {
+                        SurveyQuestionOption option = optionMap.get(id);
+                        if (option == null || !option.getQuestion().getId().equals(question.getId())) {
+                            throw new InvalidAnswerFormatException();
+                        }
+                        return SurveyAnswer.builder()
+                                .session(session)
+                                .question(question)
+                                .selectedOption(option)
+                                .build();
+                    })
+                    .toList();
+        }
+
+        // YES_NO / SCALE
+        List<Long> ids = req.selectedOptionIds();
+        if (ids == null || ids.size() != 1) {
             throw new InvalidAnswerFormatException();
         }
-        SurveyQuestionOption option = optionMap.get(req.selectedOptionId());
+        SurveyQuestionOption option = optionMap.get(ids.get(0));
         if (option == null || !option.getQuestion().getId().equals(question.getId())) {
             throw new InvalidAnswerFormatException();
         }
-        return SurveyAnswer.builder()
+        return List.of(SurveyAnswer.builder()
                 .session(session)
                 .question(question)
                 .selectedOption(option)
-                .build();
+                .build());
     }
 }
