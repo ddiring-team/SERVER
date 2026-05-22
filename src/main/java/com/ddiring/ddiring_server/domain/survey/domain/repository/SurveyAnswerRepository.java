@@ -24,6 +24,17 @@ public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Long
             """)
     List<Object[]> findCategoryAnswersBySessionId(@Param("sessionId") Long sessionId);
 
+    // 세션의 답변 목록을 [카테고리, 질문내용, 답변텍스트] 형태로 조회 (질문 순서 오름차순)
+    @Query("""
+            SELECT sq.category, sq.content, COALESCE(sqo.label, sa.answerText)
+            FROM SurveyAnswer sa
+            JOIN sa.question sq
+            LEFT JOIN sa.selectedOption sqo
+            WHERE sa.session.id = :sessionId
+            ORDER BY sq.orderNum ASC, sqo.orderNum ASC
+            """)
+    List<Object[]> findAnswerDetailsBySessionId(@Param("sessionId") Long sessionId);
+
     @Modifying
     @Query("DELETE FROM SurveyAnswer sa WHERE sa.session.id IN :sessionIds")
     void deleteAllBySessionIdIn(@Param("sessionIds") Collection<Long> sessionIds);

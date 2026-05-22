@@ -1,29 +1,37 @@
 package com.ddiring.ddiring_server.domain.survey.application.service;
 
+import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRepository;
 import com.ddiring.ddiring_server.domain.survey.application.service.SurveySessionStarter.PreparedSession;
 import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveyQuestion;
 import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveyQuestionOption;
+import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveySession;
+import com.ddiring.ddiring_server.domain.survey.domain.repository.SurveyAnswerRepository;
+import com.ddiring.ddiring_server.domain.survey.domain.repository.SurveySessionRepository;
+import com.ddiring.ddiring_server.domain.survey.exception.SurveySessionNotFoundException;
+import com.ddiring.ddiring_server.domain.survey.exception.SurveySessionNotOwnedException;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.ElderSessionListItemResponse;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SessionDetailResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.StartSurveySessionResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SurveyOptionResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SurveyQuestionForSessionResponse;
 import com.ddiring.ddiring_server.global.client.fastapi.dto.TransformQuestionsResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * 어르신의 설문 세션 시작 API 진입점.
- * - DB 작업은 SurveySessionStarter(@Transactional)에 위임
- * - 캐시 조회/저장은 TransformedQuestionCacheService에 위임
- * - FastAPI 호출은 SurveyQuestionTransformService(트랜잭션 밖)에 위임
- * - 변환 실패 시 원본 질문으로 fallback
- */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SurveySessionService {
@@ -31,6 +39,10 @@ public class SurveySessionService {
     private final SurveySessionStarter starter;
     private final SurveyQuestionTransformService transformService;
     private final TransformedQuestionCacheService cacheService;
+    private final SurveySessionRepository sessionRepository;
+    private final SurveyAnswerRepository answerRepository;
+    private final FamilyMemberRepository familyMemberRepository;
+    private final ObjectMapper objectMapper;
 
     public StartSurveySessionResponse startSession(Long userId, Long surveyId) {
         PreparedSession prepared = starter.prepare(userId, surveyId);
@@ -88,6 +100,75 @@ public class SurveySessionService {
         Map<String, String> merged = new HashMap<>(cached);
         merged.putAll(fromApi);
         return merged;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ElderSessionListItemResponse> getElderSessionList(Long requesterId, Long elderId) {
+        verifyInSameFamily(requesterId, elderId);
+        return sessionRepository.findCompletedByElderIdOrderByDateDesc(elderId).stream()
+                .map(ElderSessionListItemResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public SessionDetailResponse getSessionDetail(Long requesterId, Long sessionId) {
+        SurveySession session = sessionRepository.findById(sessionId)
+                .orElseThrow(SurveySessionNotFoundException::new);
+
+        verifyInSameFamily(requesterId, session.getElder().getId());
+
+        List<SessionDetailResponse.AnswerItem> answers = buildAnswerItems(sessionId);
+        List<String> highlights = parseHighlights(session.getDailyHighlights());
+
+        return new SessionDetailResponse(
+                session.getId(),
+                session.getSurvey().getTitle(),
+                session.getSessionDate(),
+                session.getCompletedAt(),
+                answers,
+                session.getDailySummary(),
+                highlights
+        );
+    }
+
+    private void verifyInSameFamily(Long requesterId, Long elderId) {
+        Long requesterFamilyId = familyMemberRepository.findFamilyIdByUserId(requesterId)
+                .orElseThrow(SurveySessionNotOwnedException::new);
+        Long elderFamilyId = familyMemberRepository.findFamilyIdByUserId(elderId)
+                .orElseThrow(SurveySessionNotOwnedException::new);
+        if (!requesterFamilyId.equals(elderFamilyId)) {
+            throw new SurveySessionNotOwnedException();
+        }
+    }
+
+    private List<SessionDetailResponse.AnswerItem> buildAnswerItems(Long sessionId) {
+        List<Object[]> rows = answerRepository.findAnswerDetailsBySessionId(sessionId);
+        // MULTIPLE 타입은 같은 카테고리+질문에 여러 행 → 답변을 ", "로 합산
+        Map<String, SessionDetailResponse.AnswerItem> merged = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String category = (String) row[0];
+            String question = (String) row[1];
+            String answer = (String) row[2];
+            String key = category + "|" + question;
+            if (merged.containsKey(key)) {
+                SessionDetailResponse.AnswerItem existing = merged.get(key);
+                merged.put(key, new SessionDetailResponse.AnswerItem(
+                        existing.category(), existing.question(), existing.answer() + ", " + answer));
+            } else {
+                merged.put(key, new SessionDetailResponse.AnswerItem(category, question, answer));
+            }
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    private List<String> parseHighlights(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("highlights JSON 파싱 실패: {}", e.getMessage());
+            return null;
+        }
     }
 
     private SurveyQuestionForSessionResponse toQuestionResponse(

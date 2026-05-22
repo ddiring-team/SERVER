@@ -40,8 +40,19 @@ public class SurveySession extends BaseEntity {
 
     private LocalDateTime completedAt;  // 설문 완료 시각
 
+    @Column(columnDefinition = "TEXT")
+    private String dailySummary;         // AI 생성 일일 요약 (보호자용)
+
+    @Column(columnDefinition = "TEXT")
+    private String dailyHighlights;      // AI 생성 핵심 키워드 리스트 (JSON 배열 문자열)
+
     public void complete() {
         this.status = SurveyStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
+    }
+
+    public void updateDailySummary(String summary, String highlights) {
+        this.dailySummary = summary;
+        this.dailyHighlights = highlights;
     }
 }
