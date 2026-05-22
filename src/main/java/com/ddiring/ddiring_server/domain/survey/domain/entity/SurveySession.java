@@ -39,4 +39,9 @@ public class SurveySession extends BaseEntity {
     private SurveyStatus status = SurveyStatus.IN_PROGRESS; // 진행 중 / 완료
 
     private LocalDateTime completedAt;  // 설문 완료 시각
+
+    public void complete() {
+        this.status = SurveyStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
 }

@@ -1,7 +1,9 @@
 package com.ddiring.ddiring_server.domain.survey.presentation;
 
+import com.ddiring.ddiring_server.domain.survey.application.service.SurveyAnswerService;
 import com.ddiring.ddiring_server.domain.survey.application.service.SurveySessionService;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.StartSurveySessionRequest;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.SubmitAnswersRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.StartSurveySessionResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.message.ResponseMessage;
 import com.ddiring.ddiring_server.global.common.response.ApiResponse;
@@ -14,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SurveySessionController {
 
     private final SurveySessionService surveySessionService;
+    private final SurveyAnswerService surveyAnswerService;
 
     @Operation(
             summary = "설문 세션 시작 (어르신)",
@@ -50,5 +54,31 @@ public class SurveySessionController {
     ) {
         StartSurveySessionResponse response = surveySessionService.startSession(userId, request.surveyId());
         return ApiResponse.success(HttpStatus.CREATED, ResponseMessage.SURVEY_SESSION_START_SUCCESS.getMessage(), response);
+    }
+
+    @Operation(
+            summary = "설문 답변 제출 (어르신)",
+            description = "어르신이 세션의 모든 질문에 대한 답변을 한 번에 제출합니다. 제출 후 세션은 COMPLETED 상태로 변경됩니다. " +
+                    "YES_NO/SCALE/MULTIPLE 타입은 selectedOptionId, TEXT 타입은 answerText를 입력합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "답변 제출 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "질문 유형에 맞지 않는 답변 형식",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "본인의 세션이 아님",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "세션을 찾을 수 없음",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 완료된 세션",
+                    content = @Content(schema = @Schema()))
+    })
+    @PostMapping("/{sessionId}/answers")
+    public ApiResponse<Void> submitAnswers(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody SubmitAnswersRequest request
+    ) {
+        surveyAnswerService.submitAnswers(userId, sessionId, request.answers());
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.SURVEY_ANSWER_SUBMIT_SUCCESS.getMessage(), null);
     }
 }
