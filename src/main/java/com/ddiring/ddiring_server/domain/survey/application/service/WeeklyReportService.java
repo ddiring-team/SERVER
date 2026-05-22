@@ -32,7 +32,11 @@ public class WeeklyReportService {
     @Transactional(readOnly = true)
     public WeeklyReportResponse getWeeklyReport(Long requesterId, Long elderId, LocalDate startDate, LocalDate endDate) {
         verifyInSameFamily(requesterId, elderId);
+        return generateForElder(elderId, startDate, endDate);
+    }
 
+    @Transactional(readOnly = true)
+    public WeeklyReportResponse generateForElder(Long elderId, LocalDate startDate, LocalDate endDate) {
         List<SurveySession> sessions = sessionRepository.findCompletedByElderIdAndDateRange(elderId, startDate, endDate);
 
         String elderName = sessions.isEmpty() ? "" : sessions.get(0).getElder().getName();

@@ -20,4 +20,11 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             @Param("start") LocalDate start,
             @Param("end") LocalDate end
     );
+
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.user.id = :userId AND a.checkedAt BETWEEN :start AND :end")
+    long countByUserIdAndDateBetween(
+            @Param("userId") Long userId,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
 }
