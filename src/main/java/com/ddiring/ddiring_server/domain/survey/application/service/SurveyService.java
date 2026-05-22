@@ -24,6 +24,7 @@ import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.CreateS
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.CreateSurveyRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.CreateSurveyResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SurveyListItemResponse;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.TodaySurveyResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
@@ -33,9 +34,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -118,6 +121,27 @@ public class SurveyService {
                         responseCountMap.getOrDefault(survey.getId(), 0)
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<TodaySurveyResponse> getTodaySurvey(Long userId) {
+        Long familyId = familyMemberRepository.findFamilyIdByUserId(userId)
+                .orElseThrow(SurveyFamilyNotFoundException::new);
+
+        List<Survey> activeSurveys = surveyRepository.findActiveByFamilyId(familyId);
+        if (activeSurveys.isEmpty()) {
+            return Optional.empty();
+        }
+
+        LocalDate today = LocalDate.now();
+        for (Survey survey : activeSurveys) {
+            boolean alreadyDone = surveySessionRepository.existsCompletedByElderAndSurveyAndDate(userId, survey.getId(), today);
+            if (!alreadyDone) {
+                return Optional.of(TodaySurveyResponse.of(survey));
+            }
+        }
+
+        return Optional.empty();
     }
 
     @Transactional

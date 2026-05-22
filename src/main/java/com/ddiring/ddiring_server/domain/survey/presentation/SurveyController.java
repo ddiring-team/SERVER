@@ -4,6 +4,7 @@ import com.ddiring.ddiring_server.domain.survey.application.service.SurveyServic
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.CreateSurveyRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.CreateSurveyResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SurveyListItemResponse;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.TodaySurveyResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.message.ResponseMessage;
 import com.ddiring.ddiring_server.global.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,6 +20,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @Tag(name = "설문", description = "설문 관련 API")
 @RestController
@@ -47,6 +49,25 @@ public class SurveyController {
     ) {
         CreateSurveyResponse response = surveyService.createSurvey(userId, request);
         return ApiResponse.success(HttpStatus.CREATED, ResponseMessage.SURVEY_CREATE_SUCCESS.getMessage(), response);
+    }
+
+    @Operation(
+            summary = "오늘의 설문 조회 (어르신)",
+            description = "어르신이 오늘 진행해야 할 활성 설문을 조회합니다. " +
+                    "이미 오늘 완료한 설문은 제외되며, 진행할 설문이 없으면 data가 null로 반환됩니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공 (설문 없으면 data=null)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "가족방에 소속되지 않음",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping("/today")
+    public ApiResponse<TodaySurveyResponse> getTodaySurvey(@AuthenticationPrincipal Long userId) {
+        Optional<TodaySurveyResponse> result = surveyService.getTodaySurvey(userId);
+        if (result.isPresent()) {
+            return ApiResponse.success(HttpStatus.OK, ResponseMessage.TODAY_SURVEY_SUCCESS.getMessage(), result.get());
+        }
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.TODAY_SURVEY_NONE.getMessage(), null);
     }
 
     @Operation(summary = "설문 목록 조회 (보호자)", description = "내 가족방의 설문 목록을 최신순으로 조회합니다.")
