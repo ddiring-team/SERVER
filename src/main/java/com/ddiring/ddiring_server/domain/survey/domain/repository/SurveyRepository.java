@@ -14,4 +14,7 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
 
     @EntityGraph(attributePaths = {"createdBy"})
     List<Survey> findAllByFamily_IdOrderByCreatedAtDesc(@Param("familyId") Long familyId);
+
+    @Query("SELECT s FROM Survey s WHERE s.family.id = :familyId AND s.isActive = true ORDER BY s.createdAt DESC")
+    List<Survey> findActiveByFamilyId(@Param("familyId") Long familyId);
 }
