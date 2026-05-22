@@ -4,6 +4,8 @@ import com.ddiring.ddiring_server.domain.survey.application.service.SurveyAnswer
 import com.ddiring.ddiring_server.domain.survey.application.service.SurveySessionService;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.StartSurveySessionRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.SubmitAnswersRequest;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.ElderSessionListItemResponse;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SessionDetailResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.StartSurveySessionResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.message.ResponseMessage;
 import com.ddiring.ddiring_server.global.common.response.ApiResponse;
@@ -16,11 +18,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Tag(name = "설문 세션", description = "어르신의 설문 응답 세션 API")
 @RestController
@@ -30,6 +36,44 @@ public class SurveySessionController {
 
     private final SurveySessionService surveySessionService;
     private final SurveyAnswerService surveyAnswerService;
+
+    @Operation(
+            summary = "어르신 설문 응답 목록 조회 (보호자)",
+            description = "특정 어르신의 완료된 설문 세션 목록을 최신순으로 조회합니다. 같은 가족방 구성원만 조회 가능합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "같은 가족방이 아님",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping
+    public ApiResponse<List<ElderSessionListItemResponse>> getElderSessionList(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam Long elderId
+    ) {
+        List<ElderSessionListItemResponse> result = surveySessionService.getElderSessionList(userId, elderId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.SESSION_LIST_SUCCESS.getMessage(), result);
+    }
+
+    @Operation(
+            summary = "설문 세션 상세 조회 (보호자/어르신)",
+            description = "특정 세션의 응답 내용과 AI 요약을 조회합니다. AI 요약 생성 전이면 summary/highlights는 null로 반환됩니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "같은 가족방이 아님",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "세션을 찾을 수 없음",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping("/{sessionId}")
+    public ApiResponse<SessionDetailResponse> getSessionDetail(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long sessionId
+    ) {
+        SessionDetailResponse result = surveySessionService.getSessionDetail(userId, sessionId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.SESSION_DETAIL_SUCCESS.getMessage(), result);
+    }
 
     @Operation(
             summary = "설문 세션 시작 (어르신)",
