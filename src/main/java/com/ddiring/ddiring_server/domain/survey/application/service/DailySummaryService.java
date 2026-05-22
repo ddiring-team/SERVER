@@ -28,11 +28,12 @@ public class DailySummaryService {
     private final SurveyAnswerRepository answerRepository;
     private final FastApiSurveyClient fastApiSurveyClient;
     private final ObjectMapper objectMapper;
+    private final DailySummaryPersistenceService persistenceService;
 
     @Async
     public void generateAndSave(Long sessionId) {
-        // 1단계: DB 조회 (트랜잭션 종료 후 커넥션 반환)
-        DailySummaryRequest request = buildRequest(sessionId);
+        // 1단계: DB 조회 — 별도 빈 호출로 @Transactional 정상 적용
+        DailySummaryRequest request = persistenceService.buildRequest(sessionId);
         if (request == null) return;
 
         // 2단계: 외부 API 호출 (트랜잭션 밖)
@@ -42,44 +43,9 @@ public class DailySummaryService {
             return;
         }
 
-        // 3단계: 결과 저장 (별도 트랜잭션)
+        // 3단계: 결과 저장 — 별도 빈 호출로 @Transactional 정상 적용
         DailySummaryResponse response = result.get();
-        saveSummary(sessionId, response.summary(), toJson(response.highlights()));
-    }
-
-    @Transactional(readOnly = true)
-    public DailySummaryRequest buildRequest(Long sessionId) {
-        SurveySession session = sessionRepository.findById(sessionId).orElse(null);
-        if (session == null) return null;
-
-        Map<String, String> responses = buildResponsesMap(sessionId);
-        if (responses.isEmpty()) {
-            log.warn("일일 요약 생성 건너뜀: 세션 {} 에 카테고리 답변 없음", sessionId);
-            return null;
-        }
-
-        return new DailySummaryRequest(
-                new DailySummaryRequest.ElderProfile(session.getElder().getName()),
-                new DailySummaryRequest.DailyResponse(session.getSessionDate().toString(), responses)
-        );
-    }
-
-    @Transactional
-    public void saveSummary(Long sessionId, String summary, String highlightsJson) {
-        sessionRepository.findById(sessionId).ifPresent(session ->
-                session.updateDailySummary(summary, highlightsJson)
-        );
-    }
-
-    private Map<String, String> buildResponsesMap(Long sessionId) {
-        List<Object[]> rows = answerRepository.findCategoryAnswersBySessionId(sessionId);
-        Map<String, String> map = new LinkedHashMap<>();
-        for (Object[] row : rows) {
-            String category = (String) row[0];
-            String answer = (String) row[1];
-            map.putIfAbsent(category, answer);
-        }
-        return map;
+        persistenceService.saveSummary(sessionId, response.summary(), toJson(response.highlights()));
     }
 
     private String toJson(List<String> list) {
@@ -88,6 +54,48 @@ public class DailySummaryService {
         } catch (JsonProcessingException e) {
             log.warn("highlights JSON 직렬화 실패: {}", e.getMessage());
             return "[]";
+        }
+    }
+
+    // --- 트랜잭션 분리를 위한 내부 퍼시스턴스 빈 ---
+
+    @Service
+    @RequiredArgsConstructor
+    public static class DailySummaryPersistenceService {
+
+        private final SurveySessionRepository sessionRepository;
+        private final SurveyAnswerRepository answerRepository;
+
+        @Transactional(readOnly = true)
+        public DailySummaryRequest buildRequest(Long sessionId) {
+            SurveySession session = sessionRepository.findById(sessionId).orElse(null);
+            if (session == null) return null;
+
+            Map<String, String> responses = buildResponsesMap(sessionId);
+            if (responses.isEmpty()) {
+                return null;
+            }
+
+            return new DailySummaryRequest(
+                    new DailySummaryRequest.ElderProfile(session.getElder().getName()),
+                    new DailySummaryRequest.DailyResponse(session.getSessionDate().toString(), responses)
+            );
+        }
+
+        @Transactional
+        public void saveSummary(Long sessionId, String summary, String highlightsJson) {
+            sessionRepository.findById(sessionId).ifPresent(session ->
+                    session.updateDailySummary(summary, highlightsJson)
+            );
+        }
+
+        private Map<String, String> buildResponsesMap(Long sessionId) {
+            List<Object[]> rows = answerRepository.findCategoryAnswersBySessionId(sessionId);
+            Map<String, String> map = new LinkedHashMap<>();
+            for (Object[] row : rows) {
+                map.putIfAbsent((String) row[0], (String) row[1]);
+            }
+            return map;
         }
     }
 }
