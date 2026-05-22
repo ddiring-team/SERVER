@@ -16,7 +16,8 @@ public enum ResponseMessage {
     TODAY_SURVEY_SUCCESS("오늘의 설문 조회에 성공했습니다."),
     TODAY_SURVEY_NONE("오늘 진행할 설문이 없습니다."),
     SESSION_LIST_SUCCESS("설문 응답 목록 조회에 성공했습니다."),
-    SESSION_DETAIL_SUCCESS("설문 응답 상세 조회에 성공했습니다.");
+    SESSION_DETAIL_SUCCESS("설문 응답 상세 조회에 성공했습니다."),
+    WEEKLY_REPORT_SUCCESS("주간 패턴 리포트 조회에 성공했습니다.");
 
     private final String message;
 }
