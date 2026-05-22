@@ -32,6 +32,7 @@ public class SurveyAnswerService {
     private final SurveyQuestionRepository questionRepository;
     private final SurveyQuestionOptionRepository optionRepository;
     private final SurveyAnswerRepository answerRepository;
+    private final DailySummaryService dailySummaryService;
 
     @Transactional
     public void submitAnswers(Long userId, Long sessionId, List<SubmitAnswerRequest> answers) {
@@ -68,6 +69,8 @@ public class SurveyAnswerService {
 
         answerRepository.saveAll(entities);
         session.complete();
+
+        dailySummaryService.generateAndSave(sessionId);
     }
 
     private List<SurveyAnswer> buildAnswers(
