@@ -28,6 +28,8 @@ public interface SurveySessionRepository extends JpaRepository<SurveySession, Lo
     @Query("DELETE FROM SurveySession ss WHERE ss.survey.id = :surveyId")
     void deleteAllBySurveyId(@Param("surveyId") Long surveyId);
 
+    java.util.Optional<SurveySession> findByElder_IdAndSurvey_IdAndSessionDate(Long elderId, Long surveyId, LocalDate sessionDate);
+
     // 어르신의 최근 완료된 세션 조회 (날짜 내림차순). since는 포함 (inclusive).
     @Query("SELECT ss FROM SurveySession ss WHERE ss.elder.id = :elderId AND ss.status = 'COMPLETED' AND ss.sessionDate >= :since ORDER BY ss.sessionDate DESC")
     List<SurveySession> findRecentCompletedByElderId(@Param("elderId") Long elderId, @Param("since") LocalDate since);

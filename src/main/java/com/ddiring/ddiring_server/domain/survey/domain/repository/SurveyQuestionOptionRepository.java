@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 
 @Repository
 public interface SurveyQuestionOptionRepository extends JpaRepository<SurveyQuestionOption, Long> {
@@ -15,4 +16,7 @@ public interface SurveyQuestionOptionRepository extends JpaRepository<SurveyQues
     @Modifying
     @Query("DELETE FROM SurveyQuestionOption sqo WHERE sqo.question.id IN :questionIds")
     void deleteAllByQuestionIdIn(@Param("questionIds") Collection<Long> questionIds);
+
+    @Query("SELECT sqo FROM SurveyQuestionOption sqo WHERE sqo.question.id IN :questionIds ORDER BY sqo.orderNum ASC")
+    List<SurveyQuestionOption> findAllByQuestionIdInOrderByOrderNumAsc(@Param("questionIds") Collection<Long> questionIds);
 }

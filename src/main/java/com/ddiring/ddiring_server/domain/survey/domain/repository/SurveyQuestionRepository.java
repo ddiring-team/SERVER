@@ -19,6 +19,8 @@ public interface SurveyQuestionRepository extends JpaRepository<SurveyQuestion, 
     @Query("SELECT sq.id FROM SurveyQuestion sq WHERE sq.survey.id = :surveyId")
     List<Long> findIdsBySurveyId(@Param("surveyId") Long surveyId);
 
+    List<SurveyQuestion> findAllBySurvey_IdOrderByOrderNumAsc(Long surveyId);
+
     @Modifying
     @Query("DELETE FROM SurveyQuestion sq WHERE sq.survey.id = :surveyId")
     void deleteAllBySurveyId(@Param("surveyId") Long surveyId);
