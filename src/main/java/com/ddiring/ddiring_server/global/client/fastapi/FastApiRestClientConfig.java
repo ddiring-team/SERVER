@@ -22,6 +22,7 @@ public class FastApiRestClientConfig {
     public RestClient fastApiRestClient() {
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
+                .version(HttpClient.Version.HTTP_1_1)
                 .build();
 
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);

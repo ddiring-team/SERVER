@@ -4,6 +4,7 @@ import com.ddiring.ddiring_server.global.client.fastapi.dto.TransformQuestionsRe
 import com.ddiring.ddiring_server.global.client.fastapi.dto.TransformQuestionsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -30,6 +31,7 @@ public class FastApiSurveyClient {
             try {
                 TransformQuestionsResponse response = fastApiRestClient.post()
                         .uri(TRANSFORM_QUESTIONS_URI)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .body(request)
                         .retrieve()
                         .body(TransformQuestionsResponse.class);
