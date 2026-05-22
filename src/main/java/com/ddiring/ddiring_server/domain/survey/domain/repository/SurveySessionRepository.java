@@ -33,6 +33,14 @@ public interface SurveySessionRepository extends JpaRepository<SurveySession, Lo
     @Query("SELECT CASE WHEN COUNT(ss) > 0 THEN true ELSE false END FROM SurveySession ss WHERE ss.elder.id = :elderId AND ss.survey.id = :surveyId AND ss.sessionDate = :date AND ss.status = 'COMPLETED'")
     boolean existsCompletedByElderAndSurveyAndDate(@Param("elderId") Long elderId, @Param("surveyId") Long surveyId, @Param("date") LocalDate date);
 
+    // 세션의 어르신이 특정 가족에 소속되어 있는지 확인
+    @Query("SELECT CASE WHEN COUNT(ss) > 0 THEN true ELSE false END FROM SurveySession ss JOIN FamilyMember fm ON fm.user.id = ss.elder.id WHERE ss.id = :sessionId AND fm.family.id = :familyId")
+    boolean existsByIdAndElderFamilyId(@Param("sessionId") Long sessionId, @Param("familyId") Long familyId);
+
+    // 어르신의 완료된 세션 목록 조회 (날짜 내림차순, survey fetch join)
+    @Query("SELECT ss FROM SurveySession ss JOIN FETCH ss.survey WHERE ss.elder.id = :elderId AND ss.status = 'COMPLETED' ORDER BY ss.sessionDate DESC, ss.completedAt DESC")
+    List<SurveySession> findCompletedByElderIdOrderByDateDesc(@Param("elderId") Long elderId);
+
     // 어르신의 최근 완료된 세션 조회 (날짜 내림차순). since는 포함 (inclusive).
     @Query("SELECT ss FROM SurveySession ss WHERE ss.elder.id = :elderId AND ss.status = 'COMPLETED' AND ss.sessionDate >= :since ORDER BY ss.sessionDate DESC")
     List<SurveySession> findRecentCompletedByElderId(@Param("elderId") Long elderId, @Param("since") LocalDate since);
