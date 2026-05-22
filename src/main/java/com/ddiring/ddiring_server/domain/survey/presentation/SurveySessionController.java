@@ -2,11 +2,13 @@ package com.ddiring.ddiring_server.domain.survey.presentation;
 
 import com.ddiring.ddiring_server.domain.survey.application.service.SurveyAnswerService;
 import com.ddiring.ddiring_server.domain.survey.application.service.SurveySessionService;
+import com.ddiring.ddiring_server.domain.survey.application.service.WeeklyReportService;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.StartSurveySessionRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.SubmitAnswersRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.ElderSessionListItemResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SessionDetailResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.StartSurveySessionResponse;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.WeeklyReportResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.message.ResponseMessage;
 import com.ddiring.ddiring_server.global.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Tag(name = "설문 세션", description = "어르신의 설문 응답 세션 API")
@@ -36,6 +40,27 @@ public class SurveySessionController {
 
     private final SurveySessionService surveySessionService;
     private final SurveyAnswerService surveyAnswerService;
+    private final WeeklyReportService weeklyReportService;
+
+    @Operation(
+            summary = "어르신 주간 패턴 리포트 조회 (보호자)",
+            description = "특정 어르신의 지정 기간 설문 응답을 분석한 AI 주간 리포트를 반환합니다. 같은 가족방 구성원만 조회 가능합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "같은 가족방이 아님",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping("/weekly-report")
+    public ApiResponse<WeeklyReportResponse> getWeeklyReport(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam Long elderId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        WeeklyReportResponse result = weeklyReportService.getWeeklyReport(userId, elderId, startDate, endDate);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.WEEKLY_REPORT_SUCCESS.getMessage(), result);
+    }
 
     @Operation(
             summary = "어르신 설문 응답 목록 조회 (보호자)",

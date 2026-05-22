@@ -4,6 +4,8 @@ import com.ddiring.ddiring_server.global.client.fastapi.dto.DailySummaryRequest;
 import com.ddiring.ddiring_server.global.client.fastapi.dto.DailySummaryResponse;
 import com.ddiring.ddiring_server.global.client.fastapi.dto.TransformQuestionsRequest;
 import com.ddiring.ddiring_server.global.client.fastapi.dto.TransformQuestionsResponse;
+import com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportRequest;
+import com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -95,6 +97,43 @@ public class FastApiSurveyClient {
                     return Optional.empty();
                 }
                 log.warn("FastAPI 일일 요약 재시도 {}/{}: {}", attempt, MAX_ATTEMPTS, e.toString());
+            }
+
+            sleepBackoff(attempt);
+        }
+        return Optional.empty();
+    }
+
+    private static final String WEEKLY_REPORT_URI = "/ai/weekly-report";
+
+    public Optional<WeeklyReportResponse> getWeeklyReport(WeeklyReportRequest request) {
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                WeeklyReportResponse response = fastApiRestClient.post()
+                        .uri(WEEKLY_REPORT_URI)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(request)
+                        .retrieve()
+                        .body(WeeklyReportResponse.class);
+                return Optional.ofNullable(response);
+
+            } catch (RestClientResponseException e) {
+                if (e.getStatusCode().is4xxClientError()) {
+                    log.warn("FastAPI 주간 리포트 실패 (status={}): {}", e.getStatusCode(), e.getMessage());
+                    return Optional.empty();
+                }
+                if (attempt == MAX_ATTEMPTS) {
+                    log.warn("FastAPI 주간 리포트 실패 (최종 status={}): {}", e.getStatusCode(), e.getMessage());
+                    return Optional.empty();
+                }
+                log.warn("FastAPI 주간 리포트 재시도 {}/{} (status={})", attempt, MAX_ATTEMPTS, e.getStatusCode());
+
+            } catch (Exception e) {
+                if (attempt == MAX_ATTEMPTS) {
+                    log.warn("FastAPI 주간 리포트 실패 (최종): {}", e.toString());
+                    return Optional.empty();
+                }
+                log.warn("FastAPI 주간 리포트 재시도 {}/{}: {}", attempt, MAX_ATTEMPTS, e.toString());
             }
 
             sleepBackoff(attempt);
