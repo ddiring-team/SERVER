@@ -145,17 +145,15 @@ public class SurveyService {
     }
 
     @Transactional
-    public void toggleSurveyStatus(Long userId, Long surveyId) {
+    public void activateSurvey(Long userId, Long surveyId) {
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(SurveyNotFoundException::new);
 
         validateOwner(userId, survey);
-        survey.toggleActive();
+        survey.activate();
 
-        if (survey.isActive()) {
-            List<String> elderTokens = familyMemberRepository.findElderFcmTokensByFamilyId(survey.getFamily().getId());
-            fcmService.sendToTokens(elderTokens, "새 설문이 도착했어요!", "'" + survey.getTitle() + "' 설문에 참여해 주세요.");
-        }
+        List<String> elderTokens = familyMemberRepository.findElderFcmTokensByFamilyId(survey.getFamily().getId());
+        fcmService.sendToTokens(elderTokens, "새 설문이 도착했어요!", "'" + survey.getTitle() + "' 설문에 참여해 주세요.");
     }
 
     @Transactional

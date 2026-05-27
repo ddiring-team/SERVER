@@ -82,21 +82,21 @@ public class SurveyController {
         return ApiResponse.success(HttpStatus.OK, ResponseMessage.SURVEY_LIST_SUCCESS.getMessage(), response);
     }
 
-    @Operation(summary = "설문 활성/비활성 전환 (보호자)", description = "설문의 활성 상태를 토글합니다.")
+    @Operation(summary = "설문 활성화 (보호자)", description = "설문을 활성화하고 어르신에게 알림을 발송합니다.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상태 변경 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "활성화 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "본인이 생성한 설문이 아님",
                     content = @Content(schema = @Schema())),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "설문 없음",
                     content = @Content(schema = @Schema()))
     })
-    @PatchMapping("/{surveyId}/status")
-    public ApiResponse<Void> toggleSurveyStatus(
+    @PatchMapping("/{surveyId}/activate")
+    public ApiResponse<Void> activateSurvey(
             @Parameter(description = "설문 ID") @PathVariable Long surveyId,
             @AuthenticationPrincipal Long userId
     ) {
-        surveyService.toggleSurveyStatus(userId, surveyId);
-        return ApiResponse.success(HttpStatus.OK, ResponseMessage.SURVEY_STATUS_TOGGLE_SUCCESS.getMessage());
+        surveyService.activateSurvey(userId, surveyId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.SURVEY_ACTIVATE_SUCCESS.getMessage());
     }
 
     @Operation(summary = "설문 삭제 (보호자)", description = "설문을 삭제합니다.")

@@ -33,7 +33,7 @@ public class Survey extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;    // 활성 여부
 
-    public void toggleActive() {
-        this.isActive = !this.isActive;
+    public void activate() {
+        this.isActive = true;
     }
 }
