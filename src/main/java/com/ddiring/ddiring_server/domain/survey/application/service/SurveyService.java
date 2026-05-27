@@ -18,6 +18,7 @@ import com.ddiring.ddiring_server.domain.survey.exception.DuplicateOrderNumExcep
 import com.ddiring.ddiring_server.domain.survey.exception.InvalidQuestionOptionsException;
 import com.ddiring.ddiring_server.domain.survey.exception.NotGuardianException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveyFamilyNotFoundException;
+import com.ddiring.ddiring_server.domain.survey.exception.SurveyAlreadyActiveException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveyNotFoundException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveyNotOwnedException;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.CreateSurveyQuestionRequest;
@@ -150,6 +151,10 @@ public class SurveyService {
                 .orElseThrow(SurveyNotFoundException::new);
 
         validateOwner(userId, survey);
+
+        if (survey.isActive()) {
+            throw new SurveyAlreadyActiveException();
+        }
         survey.activate();
 
         List<String> elderTokens = familyMemberRepository.findElderFcmTokensByFamilyId(survey.getFamily().getId());

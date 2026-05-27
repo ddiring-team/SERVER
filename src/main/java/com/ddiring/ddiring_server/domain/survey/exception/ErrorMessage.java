@@ -15,6 +15,7 @@ public enum ErrorMessage {
     DUPLICATE_ORDER_NUM("질문 순서(orderNum)가 중복되었습니다."),
     NOT_ELDER_ROLE("어르신만 설문에 응답할 수 있습니다."),
     SURVEY_NOT_ACTIVE("비활성화된 설문입니다."),
+    SURVEY_ALREADY_ACTIVE("이미 활성화된 설문입니다."),
     SURVEY_NOT_IN_FAMILY("같은 가족방의 설문이 아닙니다."),
     SURVEY_ALREADY_COMPLETED("오늘 이미 응답을 완료한 설문입니다."),
     SURVEY_SESSION_NOT_FOUND("설문 세션을 찾을 수 없습니다."),
