@@ -18,6 +18,7 @@ import com.ddiring.ddiring_server.domain.survey.exception.DuplicateOrderNumExcep
 import com.ddiring.ddiring_server.domain.survey.exception.InvalidQuestionOptionsException;
 import com.ddiring.ddiring_server.domain.survey.exception.NotGuardianException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveyFamilyNotFoundException;
+import com.ddiring.ddiring_server.domain.survey.exception.SurveyAlreadyActiveException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveyNotFoundException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveyNotOwnedException;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.CreateSurveyQuestionRequest;
@@ -145,17 +146,19 @@ public class SurveyService {
     }
 
     @Transactional
-    public void toggleSurveyStatus(Long userId, Long surveyId) {
+    public void activateSurvey(Long userId, Long surveyId) {
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(SurveyNotFoundException::new);
 
         validateOwner(userId, survey);
-        survey.toggleActive();
 
         if (survey.isActive()) {
-            List<String> elderTokens = familyMemberRepository.findElderFcmTokensByFamilyId(survey.getFamily().getId());
-            fcmService.sendToTokens(elderTokens, "새 설문이 도착했어요!", "'" + survey.getTitle() + "' 설문에 참여해 주세요.");
+            throw new SurveyAlreadyActiveException();
         }
+        survey.activate();
+
+        List<String> elderTokens = familyMemberRepository.findElderFcmTokensByFamilyId(survey.getFamily().getId());
+        fcmService.sendToTokens(elderTokens, "새 설문이 도착했어요!", "'" + survey.getTitle() + "' 설문에 참여해 주세요.");
     }
 
     @Transactional

@@ -31,9 +31,9 @@ public class Survey extends BaseEntity {
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)
-    private boolean isActive = true;    // 활성 여부
+    private boolean isActive = false;    // 활성 여부
 
-    public void toggleActive() {
-        this.isActive = !this.isActive;
+    public void activate() {
+        this.isActive = true;
     }
 }
