@@ -1,10 +1,10 @@
 package com.ddiring.ddiring_server.domain.survey.application.service;
 
+import com.ddiring.ddiring_server.domain.survey.application.dto.TransformedQuestionData;
 import com.ddiring.ddiring_server.domain.survey.domain.entity.TransformedQuestionCache;
 import com.ddiring.ddiring_server.domain.survey.domain.repository.TransformedQuestionCacheRepository;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
-import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,28 +22,29 @@ public class TransformedQuestionCacheService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public Map<String, String> findCached(Long elderId, LocalDate date, List<String> questionKeys) {
+    public Map<String, TransformedQuestionData> findCached(Long elderId, LocalDate date, List<String> questionKeys) {
         return cacheRepository
                 .findByElderIdAndDateAndQuestionKeyIn(elderId, date, questionKeys)
                 .stream()
                 .collect(Collectors.toMap(
                         TransformedQuestionCache::getQuestionKey,
-                        TransformedQuestionCache::getTransformed
+                        c -> new TransformedQuestionData(c.getTransformed(), c.getAudioUrl())
                 ));
     }
 
     @Transactional
-    public void saveAll(Long elderId, LocalDate date, Map<String, String> transformedByKey) {
-        if (transformedByKey.isEmpty()) {
+    public void saveAll(Long elderId, LocalDate date, Map<String, TransformedQuestionData> dataByKey) {
+        if (dataByKey.isEmpty()) {
             return;
         }
         User elder = userRepository.getReferenceById(elderId);
-        List<TransformedQuestionCache> entries = transformedByKey.entrySet().stream()
+        List<TransformedQuestionCache> entries = dataByKey.entrySet().stream()
                 .map(e -> TransformedQuestionCache.builder()
                         .elder(elder)
                         .date(date)
                         .questionKey(e.getKey())
-                        .transformed(e.getValue())
+                        .transformed(e.getValue().transformed())
+                        .audioUrl(e.getValue().audioUrl())
                         .build())
                 .toList();
 

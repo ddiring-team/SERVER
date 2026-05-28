@@ -13,6 +13,7 @@ public record TransformQuestionsResponse(
             String key,
             String original,
             @JsonProperty("response_type") String responseType,
-            String transformed
+            String transformed,
+            @JsonProperty("audio_url") String audioUrl
     ) {}
 }

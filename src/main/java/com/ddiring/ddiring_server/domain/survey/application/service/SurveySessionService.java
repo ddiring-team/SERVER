@@ -1,6 +1,7 @@
 package com.ddiring.ddiring_server.domain.survey.application.service;
 
 import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRepository;
+import com.ddiring.ddiring_server.domain.survey.application.dto.TransformedQuestionData;
 import com.ddiring.ddiring_server.domain.survey.application.service.SurveySessionStarter.PreparedSession;
 import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveyQuestion;
 import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveyQuestionOption;
@@ -47,10 +48,10 @@ public class SurveySessionService {
     public StartSurveySessionResponse startSession(Long userId, Long surveyId) {
         PreparedSession prepared = starter.prepare(userId, surveyId);
 
-        Map<String, String> transformedByKey = callTransformWithCache(prepared);
+        Map<String, TransformedQuestionData> dataByKey = callTransformWithCache(prepared);
 
         List<SurveyQuestionForSessionResponse> questions = prepared.questions().stream()
-                .map(q -> toQuestionResponse(q, prepared.optionsByQuestionId(), transformedByKey))
+                .map(q -> toQuestionResponse(q, prepared.optionsByQuestionId(), dataByKey))
                 .toList();
 
         return new StartSurveySessionResponse(
@@ -61,7 +62,7 @@ public class SurveySessionService {
         );
     }
 
-    private Map<String, String> callTransformWithCache(PreparedSession prepared) {
+    private Map<String, TransformedQuestionData> callTransformWithCache(PreparedSession prepared) {
         if (prepared.questions().isEmpty()) {
             return Map.of();
         }
@@ -71,13 +72,13 @@ public class SurveySessionService {
                 .toList();
 
         LocalDate today = LocalDate.now();
-        Map<String, String> cached = cacheService.findCached(prepared.elderId(), today, allKeys);
+        Map<String, TransformedQuestionData> cached = cacheService.findCached(prepared.elderId(), today, allKeys);
 
         List<SurveyQuestion> uncachedQuestions = prepared.questions().stream()
                 .filter(q -> !cached.containsKey(String.valueOf(q.getId())))
                 .toList();
 
-        Map<String, String> fromApi = Map.of();
+        Map<String, TransformedQuestionData> fromApi = Map.of();
         if (!uncachedQuestions.isEmpty()) {
             Optional<TransformQuestionsResponse> response = transformService.transform(
                     prepared.elderName(), prepared.elderId(), uncachedQuestions);
@@ -87,7 +88,7 @@ public class SurveySessionService {
                             .filter(t -> t.transformed() != null && !t.transformed().isBlank())
                             .collect(Collectors.toMap(
                                     TransformQuestionsResponse.TransformedQuestion::key,
-                                    TransformQuestionsResponse.TransformedQuestion::transformed,
+                                    t -> new TransformedQuestionData(t.transformed(), t.audioUrl()),
                                     (existing, duplicate) -> existing
                             )))
                     .orElseGet(Map::of);
@@ -97,7 +98,7 @@ public class SurveySessionService {
             }
         }
 
-        Map<String, String> merged = new HashMap<>(cached);
+        Map<String, TransformedQuestionData> merged = new HashMap<>(cached);
         merged.putAll(fromApi);
         return merged;
     }
@@ -174,10 +175,12 @@ public class SurveySessionService {
     private SurveyQuestionForSessionResponse toQuestionResponse(
             SurveyQuestion q,
             Map<Long, List<SurveyQuestionOption>> optionsByQuestionId,
-            Map<String, String> transformedByKey
+            Map<String, TransformedQuestionData> dataByKey
     ) {
         String key = String.valueOf(q.getId());
-        String displayContent = transformedByKey.getOrDefault(key, q.getContent());
+        TransformedQuestionData data = dataByKey.get(key);
+        String displayContent = (data != null) ? data.transformed() : q.getContent();
+        String audioUrl = (data != null) ? data.audioUrl() : null;
 
         List<SurveyOptionResponse> options = optionsByQuestionId
                 .getOrDefault(q.getId(), List.of())
@@ -192,6 +195,7 @@ public class SurveySessionService {
                 q.getQuestionType(),
                 q.getContent(),
                 displayContent,
+                audioUrl,
                 options
         );
     }

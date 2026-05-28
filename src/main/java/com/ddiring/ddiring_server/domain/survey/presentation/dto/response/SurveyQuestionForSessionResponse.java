@@ -27,6 +27,9 @@ public record SurveyQuestionForSessionResponse(
                 example = "김순자 어르신, 오늘 아침은 잘 챙겨 드셨어요?")
         String displayContent,
 
+        @Schema(description = "질문 음성 URL", example = "https://example.com/audio/question.mp3")
+        String audioUrl,
+
         @Schema(description = "선택지 목록 (TEXT 타입은 빈 배열)")
         List<SurveyOptionResponse> options
 ) {}
