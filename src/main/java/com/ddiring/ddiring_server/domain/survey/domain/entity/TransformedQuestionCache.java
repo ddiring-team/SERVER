@@ -40,15 +40,19 @@ public class TransformedQuestionCache {
     @Column(name = "transformed", nullable = false, columnDefinition = "TEXT")
     private String transformed;
 
+    @Column(name = "audio_url", columnDefinition = "TEXT")
+    private String audioUrl;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public TransformedQuestionCache(User elder, LocalDate date, String questionKey, String transformed) {
+    public TransformedQuestionCache(User elder, LocalDate date, String questionKey, String transformed, String audioUrl) {
         this.elder = elder;
         this.date = date;
         this.questionKey = questionKey;
         this.transformed = transformed;
+        this.audioUrl = audioUrl;
     }
 }
