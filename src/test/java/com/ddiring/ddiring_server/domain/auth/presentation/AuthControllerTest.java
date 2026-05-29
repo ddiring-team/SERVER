@@ -73,7 +73,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/guardian/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("loginId", "guardian01", "password", "password123", "name", "홍길동", "phone", "01012345678"))))
+                                Map.of("loginId", "guardian01", "password", "password123", "name", "홍길동", "phone", "01012345678", "birthDate", "1990-01-15"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.status").value(201))
@@ -87,7 +87,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/guardian/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("loginId", "abc", "password", "password123", "name", "홍길동", "phone", "01012345678"))))
+                                Map.of("loginId", "abc", "password", "password123", "name", "홍길동", "phone", "01012345678", "birthDate", "1990-01-15"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(400));
@@ -99,7 +99,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/guardian/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("loginId", "guardian01", "password", "short", "name", "홍길동", "phone", "01012345678"))))
+                                Map.of("loginId", "guardian01", "password", "short", "name", "홍길동", "phone", "01012345678", "birthDate", "1990-01-15"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(400));
@@ -115,7 +115,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/guardian/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("loginId", "guardian01", "password", "password123", "name", "홍길동", "phone", "01012345678"))))
+                                Map.of("loginId", "guardian01", "password", "password123", "name", "홍길동", "phone", "01012345678", "birthDate", "1990-01-15"))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.status").value(409));

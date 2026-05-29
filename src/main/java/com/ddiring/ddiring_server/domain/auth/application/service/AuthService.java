@@ -45,6 +45,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.password()))
                 .name(request.name())
                 .phone(request.phone())
+                .birthDate(request.birthDate())
                 .role(Role.GUARDIAN)
                 .build());
 

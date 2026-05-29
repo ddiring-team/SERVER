@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,7 +51,7 @@ class AuthServiceTest {
     @Test
     void guardianSignup_성공() {
         // given
-        GuardianSignupRequest request = new GuardianSignupRequest("guardian01", "password123", "홍길동", "01012345678");
+        GuardianSignupRequest request = new GuardianSignupRequest("guardian01", "password123", "홍길동", "01012345678", LocalDate.of(1990, 1, 15));
         User savedUser = User.builder().loginId("guardian01").name("홍길동").role(Role.GUARDIAN).build();
 
         given(userRepository.existsByLoginId("guardian01")).willReturn(false);
@@ -75,7 +76,7 @@ class AuthServiceTest {
 
         // when & then
         assertThatThrownBy(() -> authService.guardianSignup(
-                new GuardianSignupRequest("guardian01", "password123", "홍길동", "01012345678")))
+                new GuardianSignupRequest("guardian01", "password123", "홍길동", "01012345678", LocalDate.of(1990, 1, 15))))
                 .isInstanceOf(DuplicateLoginIdException.class);
     }
 
