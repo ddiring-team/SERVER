@@ -2,7 +2,10 @@ package com.ddiring.ddiring_server.domain.auth.presentation.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
 
 @Schema(description = "보호자 회원가입 요청")
 public record GuardianSignupRequest(
@@ -25,5 +28,9 @@ public record GuardianSignupRequest(
         @Schema(description = "전화번호", example = "01012345678")
         @NotBlank
         @Size(max = 20)
-        String phone
+        String phone,
+
+        @Schema(description = "생년월일", example = "1990-01-15")
+        @NotNull
+        LocalDate birthDate
 ) {}
