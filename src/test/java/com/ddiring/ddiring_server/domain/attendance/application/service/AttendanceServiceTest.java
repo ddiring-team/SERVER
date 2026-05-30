@@ -10,7 +10,9 @@ import com.ddiring.ddiring_server.domain.family.exception.ElderNotInFamilyExcept
 import com.ddiring.ddiring_server.domain.family.exception.FamilyMemberNotFoundException;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
+import com.ddiring.ddiring_server.global.notification.FcmService;
 import org.junit.jupiter.api.DisplayName;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -38,6 +40,12 @@ class AttendanceServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private FcmService fcmService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AttendanceService attendanceService;

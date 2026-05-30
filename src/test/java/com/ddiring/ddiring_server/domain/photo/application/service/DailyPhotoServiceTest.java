@@ -19,6 +19,7 @@ import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,6 +49,7 @@ class DailyPhotoServiceTest {
     @Mock private FamilyMemberRepository familyMemberRepository;
     @Mock private FamilyRepository familyRepository;
     @Mock private UserRepository userRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private DailyPhotoService dailyPhotoService;
@@ -215,11 +217,13 @@ class DailyPhotoServiceTest {
                 .build();
         ReflectionTestUtils.setField(photo, "id", photoId);
 
+        User viewer = User.builder().role(Role.GUARDIAN).build();
         given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
         given(dailyPhotoRepository.findByFamily_IdOrderByIdDesc(eq(familyId), any(Pageable.class)))
                 .willReturn(List.of(photo));
         given(photoReactionRepository.findAllWithUserByPhotoIdIn(List.of(photoId)))
                 .willReturn(List.of());
+        given(userRepository.findById(userId)).willReturn(Optional.of(viewer));
 
         // when
         DailyPhotoFeedResponse response = dailyPhotoService.getDailyPhotoFeed(userId, null, 20);
@@ -247,11 +251,13 @@ class DailyPhotoServiceTest {
                 .build();
         ReflectionTestUtils.setField(photo, "id", 30L);
 
+        User viewer = User.builder().role(Role.GUARDIAN).build();
         given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
         given(dailyPhotoRepository.findByFamily_IdAndIdLessThanOrderByIdDesc(eq(familyId), eq(cursor), any(Pageable.class)))
                 .willReturn(List.of(photo));
         given(photoReactionRepository.findAllWithUserByPhotoIdIn(List.of(30L)))
                 .willReturn(List.of());
+        given(userRepository.findById(userId)).willReturn(Optional.of(viewer));
 
         // when
         DailyPhotoFeedResponse response = dailyPhotoService.getDailyPhotoFeed(userId, cursor, 20);

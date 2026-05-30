@@ -18,7 +18,10 @@ import com.ddiring.ddiring_server.domain.photo.presentation.dto.response.DailyPh
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
+import com.ddiring.ddiring_server.domain.distance.application.event.DistanceResetEvent;
+import com.ddiring.ddiring_server.domain.distance.domain.entity.enums.DistanceActionType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +44,7 @@ public class DailyPhotoService {
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyRepository familyRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void createDailyPhoto(Long userId, CreateDailyPhotoRequest request) {
@@ -118,7 +122,32 @@ public class DailyPhotoService {
                 .toList();
 
         Long nextCursor = hasNext ? photos.get(photos.size() - 1).getId() : null;
+
+        User viewer = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        if (viewer.getRole() != null
+                && dailyPhotoRepository.existsTodayPhotoByOppositeRole(familyId, LocalDate.now(), viewer.getRole())) {
+            eventPublisher.publishEvent(
+                    DistanceResetEvent.broadcast(userId, DistanceActionType.PHOTO_VIEW));
+        }
+
         return new DailyPhotoFeedResponse(responses, nextCursor, hasNext);
+    }
+
+    @Transactional(readOnly = true)
+    public DailyPhotoResponse getPhotoById(Long userId, Long photoId) {
+        DailyPhoto photo = dailyPhotoRepository.findById(photoId)
+                .orElseThrow(DailyPhotoNotFoundException::new);
+
+        Long userFamilyId = familyMemberRepository.findFamilyIdByUserId(userId)
+                .orElseThrow(FamilyMemberNotFoundException::new);
+
+        if (!userFamilyId.equals(photo.getFamily().getId())) {
+            throw new PhotoAccessDeniedException();
+        }
+
+        List<PhotoReaction> reactions = photoReactionRepository
+                .findAllWithUserByPhotoIdIn(List.of(photoId));
+        return toResponse(photo, userId, reactions);
     }
 
     @Transactional

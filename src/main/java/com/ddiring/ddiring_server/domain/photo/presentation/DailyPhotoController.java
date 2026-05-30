@@ -87,6 +87,24 @@ public class DailyPhotoController {
         return ApiResponse.success(HttpStatus.OK, ResponseMessage.DAILY_PHOTO_FEED_SUCCESS.getMessage(), response);
     }
 
+    @Operation(summary = "개별 게시글 조회", description = "게시글 상세를 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = DailyPhotoResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "다른 가족방 게시글 접근",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글 없음",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping("/{photoId}")
+    public ApiResponse<DailyPhotoResponse> getDailyPhoto(
+            @AuthenticationPrincipal Long userId,
+            @Parameter(description = "게시글 ID") @PathVariable Long photoId
+    ) {
+        DailyPhotoResponse response = dailyPhotoService.getPhotoById(userId, photoId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.DAILY_PHOTO_LIST_SUCCESS.getMessage(), response);
+    }
+
     @Operation(summary = "이모지 반응 토글", description = "게시글에 이모지 반응을 추가하거나 취소합니다. 같은 이모지를 다시 누르면 취소됩니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "반응 처리 성공"),

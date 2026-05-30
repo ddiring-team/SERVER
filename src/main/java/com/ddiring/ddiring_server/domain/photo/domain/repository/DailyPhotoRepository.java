@@ -17,6 +17,18 @@ public interface DailyPhotoRepository extends JpaRepository<DailyPhoto, Long> {
     @EntityGraph(attributePaths = {"user"})
     List<DailyPhoto> findAllByFamily_IdAndTakenDateOrderByCreatedAtDesc(Long familyId, LocalDate takenDate);
 
+    boolean existsByFamily_IdAndTakenDate(Long familyId, LocalDate takenDate);
+
+    @Query("""
+        SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END
+        FROM DailyPhoto p
+        WHERE p.family.id = :familyId AND p.takenDate = :takenDate AND p.user.role <> :viewerRole
+        """)
+    boolean existsTodayPhotoByOppositeRole(
+            @Param("familyId") Long familyId,
+            @Param("takenDate") LocalDate takenDate,
+            @Param("viewerRole") com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role viewerRole);
+
     @EntityGraph(attributePaths = {"user"})
     List<DailyPhoto> findByFamily_IdOrderByIdDesc(Long familyId, Pageable pageable);
 

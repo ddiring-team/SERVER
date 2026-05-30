@@ -17,6 +17,7 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.response.Invite
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
+import com.ddiring.ddiring_server.domain.distance.application.service.DistanceService;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ class FamilyServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private DistanceService distanceService;
 
     @InjectMocks
     private FamilyService familyService;
@@ -318,8 +322,10 @@ class FamilyServiceTest {
         Family family = Family.builder().name("우리 가족").inviteCode("ABC123").createdBy(creator).build();
         ReflectionTestUtils.setField(family, "id", familyId);
 
+        User targetUser = User.builder().build();
+        ReflectionTestUtils.setField(targetUser, "id", 7L);
         FamilyMember targetMember = FamilyMember.builder()
-                .family(family).user(creator).role(Role.ELDER).build();
+                .family(family).user(targetUser).role(Role.ELDER).build();
 
         given(familyMemberRepository.findFamilyIdByUserId(userId)).willReturn(Optional.of(familyId));
         given(familyRepository.findById(familyId)).willReturn(Optional.of(family));

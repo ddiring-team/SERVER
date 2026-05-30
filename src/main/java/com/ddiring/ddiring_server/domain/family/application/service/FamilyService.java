@@ -1,5 +1,6 @@
 package com.ddiring.ddiring_server.domain.family.application.service;
 
+import com.ddiring.ddiring_server.domain.distance.application.service.DistanceService;
 import com.ddiring.ddiring_server.domain.family.domain.entity.Family;
 import com.ddiring.ddiring_server.domain.family.domain.entity.FamilyMember;
 import com.ddiring.ddiring_server.domain.family.domain.entity.enums.MemberStatus;
@@ -40,6 +41,7 @@ public class FamilyService {
     private final FamilyRepository familyRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
+    private final DistanceService distanceService;
 
     @Transactional(readOnly = true)
     public FamilyStatusResponse getFamilyStatus(Long userId) {
@@ -134,12 +136,15 @@ public class FamilyService {
     public void approveMember(Long userId, Long memberId) {
         FamilyMember member = validateFamilyOwner(userId, memberId);
         member.approve();
+        distanceService.createPairsForApprovedMember(member);
     }
 
     @Transactional
     public void rejectMember(Long userId, Long memberId) {
         FamilyMember member = validateFamilyOwner(userId, memberId);
+        Long targetUserId = member.getUser().getId();
         familyMemberRepository.delete(member);
+        distanceService.deletePairsForUser(targetUserId);
     }
 
     private FamilyMember validateFamilyOwner(Long userId, Long memberId) {
