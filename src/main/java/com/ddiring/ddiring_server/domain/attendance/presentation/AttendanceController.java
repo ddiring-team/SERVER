@@ -68,6 +68,29 @@ public class AttendanceController {
         return ApiResponse.success(HttpStatus.OK, ResponseMessage.ATTENDANCE_TODAY_SUCCESS.getMessage(), response);
     }
 
+    @Operation(
+            summary = "어르신에게 출석 독려 알림 발송 (보호자)",
+            description = "오늘 아직 출석하지 않은 어르신에게 출석 독려 FCM 푸시를 발송합니다. " +
+                    "어르신이 오늘 이미 출석했으면 409를 반환합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독려 알림 발송 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "같은 가족방의 어르신이 아님",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "어르신을 찾을 수 없음",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "어르신이 오늘 이미 출석함",
+                    content = @Content(schema = @Schema()))
+    })
+    @PostMapping("/elders/{elderId}/reminder")
+    public ApiResponse<Void> sendAttendanceReminder(
+            @Parameter(description = "어르신 사용자 ID") @PathVariable Long elderId,
+            @AuthenticationPrincipal Long guardianId
+    ) {
+        attendanceService.sendAttendanceReminder(guardianId, elderId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.ATTENDANCE_REMINDER_SUCCESS.getMessage(), null);
+    }
+
     @Operation(summary = "월별 출석 현황 조회 (보호자)", description = "보호자가 같은 가족방 어르신의 월별 출석 현황을 조회합니다. 출석한 일(day) 목록과 총 횟수를 반환합니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",

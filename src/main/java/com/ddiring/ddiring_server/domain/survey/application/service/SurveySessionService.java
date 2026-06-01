@@ -8,14 +8,20 @@ import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveyQuestionOpti
 import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveySession;
 import com.ddiring.ddiring_server.domain.survey.domain.repository.SurveyAnswerRepository;
 import com.ddiring.ddiring_server.domain.survey.domain.repository.SurveySessionRepository;
+import com.ddiring.ddiring_server.domain.survey.exception.SurveyAlreadyCompletedException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveySessionNotFoundException;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveySessionNotOwnedException;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.ElderSessionListItemResponse;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.ElderTodaySurveyResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SessionDetailResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.StartSurveySessionResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SurveyOptionResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SurveyQuestionForSessionResponse;
+import com.ddiring.ddiring_server.domain.user.domain.entity.User;
+import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
+import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import com.ddiring.ddiring_server.global.client.fastapi.dto.TransformQuestionsResponse;
+import com.ddiring.ddiring_server.global.notification.FcmService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +49,11 @@ public class SurveySessionService {
     private final SurveySessionRepository sessionRepository;
     private final SurveyAnswerRepository answerRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final UserRepository userRepository;
+    private final FcmService fcmService;
     private final ObjectMapper objectMapper;
+
+    private static final String SURVEY_REMINDER_TITLE = "설문 독려 알림";
 
     public StartSurveySessionResponse startSession(Long userId, Long surveyId) {
         PreparedSession prepared = starter.prepare(userId, surveyId);
@@ -109,6 +119,36 @@ public class SurveySessionService {
         return sessionRepository.findCompletedByElderIdOrderByDateDesc(elderId).stream()
                 .map(ElderSessionListItemResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ElderTodaySurveyResponse getElderTodaySurveyStatus(Long requesterId, Long elderId) {
+        verifyInSameFamily(requesterId, elderId);
+        boolean completed = sessionRepository.existsCompletedByElderIdAndDate(elderId, LocalDate.now());
+        return ElderTodaySurveyResponse.of(completed);
+    }
+
+    /**
+     * 보호자가 아직 오늘 설문을 완료하지 않은 어르신에게 설문 독려 푸시를 보낸다.
+     * 어르신이 오늘 이미 완료했으면 보낼 필요가 없어 예외로 막는다.
+     */
+    @Transactional(readOnly = true)
+    public void sendSurveyReminder(Long requesterId, Long elderId) {
+        verifyInSameFamily(requesterId, elderId);
+
+        if (sessionRepository.existsCompletedByElderIdAndDate(elderId, LocalDate.now())) {
+            throw new SurveyAlreadyCompletedException();
+        }
+
+        User elder = userRepository.findById(elderId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (elder.getFcmToken() == null) {
+            return;
+        }
+        String elderName = elder.getName() != null ? elder.getName() : "어르신";
+        String message = elderName + "님, 오늘의 안부 설문이 아직 남아있어요. 잊지 말고 응답해 주세요!";
+        fcmService.sendToTokens(List.of(elder.getFcmToken()), SURVEY_REMINDER_TITLE, message);
     }
 
     @Transactional(readOnly = true)

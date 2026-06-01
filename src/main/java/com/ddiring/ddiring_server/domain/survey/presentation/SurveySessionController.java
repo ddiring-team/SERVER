@@ -6,6 +6,7 @@ import com.ddiring.ddiring_server.domain.survey.application.service.WeeklyReport
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.StartSurveySessionRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.request.SubmitAnswersRequest;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.ElderSessionListItemResponse;
+import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.ElderTodaySurveyResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.SessionDetailResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.StartSurveySessionResponse;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.WeeklyReportResponse;
@@ -78,6 +79,48 @@ public class SurveySessionController {
     ) {
         List<ElderSessionListItemResponse> result = surveySessionService.getElderSessionList(userId, elderId);
         return ApiResponse.success(HttpStatus.OK, ResponseMessage.SESSION_LIST_SUCCESS.getMessage(), result);
+    }
+
+    @Operation(
+            summary = "어르신 오늘 설문 완료 여부 조회 (보호자)",
+            description = "보호자가 같은 가족방 어르신이 오늘 설문을 완료했는지 조회합니다. 같은 가족방 구성원만 조회 가능합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = ElderTodaySurveyResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "같은 가족방이 아님",
+                    content = @Content(schema = @Schema()))
+    })
+    @GetMapping("/elders/{elderId}/today")
+    public ApiResponse<ElderTodaySurveyResponse> getElderTodaySurveyStatus(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long elderId
+    ) {
+        ElderTodaySurveyResponse result = surveySessionService.getElderTodaySurveyStatus(userId, elderId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.ELDER_TODAY_SURVEY_SUCCESS.getMessage(), result);
+    }
+
+    @Operation(
+            summary = "어르신에게 설문 독려 알림 발송 (보호자)",
+            description = "오늘 아직 설문을 완료하지 않은 어르신에게 설문 독려 FCM 푸시를 발송합니다. " +
+                    "어르신이 오늘 이미 설문을 완료했으면 409를 반환합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독려 알림 발송 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "같은 가족방이 아님",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "어르신을 찾을 수 없음",
+                    content = @Content(schema = @Schema())),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "어르신이 오늘 이미 설문을 완료함",
+                    content = @Content(schema = @Schema()))
+    })
+    @PostMapping("/elders/{elderId}/reminder")
+    public ApiResponse<Void> sendSurveyReminder(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long elderId
+    ) {
+        surveySessionService.sendSurveyReminder(userId, elderId);
+        return ApiResponse.success(HttpStatus.OK, ResponseMessage.SURVEY_REMINDER_SUCCESS.getMessage(), null);
     }
 
     @Operation(
