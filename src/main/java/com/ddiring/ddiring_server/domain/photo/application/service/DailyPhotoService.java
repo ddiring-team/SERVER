@@ -20,6 +20,8 @@ import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import com.ddiring.ddiring_server.domain.distance.application.event.DistanceResetEvent;
 import com.ddiring.ddiring_server.domain.distance.domain.entity.enums.DistanceActionType;
+import com.ddiring.ddiring_server.domain.temperature.application.event.TemperatureRaiseEvent;
+import com.ddiring.ddiring_server.domain.temperature.domain.entity.enums.TemperatureActionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -128,6 +130,8 @@ public class DailyPhotoService {
                 && dailyPhotoRepository.existsTodayPhotoByOppositeRole(familyId, LocalDate.now(), viewer.getRole())) {
             eventPublisher.publishEvent(
                     DistanceResetEvent.broadcast(userId, DistanceActionType.PHOTO_VIEW));
+            eventPublisher.publishEvent(
+                    new TemperatureRaiseEvent(userId, TemperatureActionType.PHOTO_VIEW));
         }
 
         return new DailyPhotoFeedResponse(responses, nextCursor, hasNext);
