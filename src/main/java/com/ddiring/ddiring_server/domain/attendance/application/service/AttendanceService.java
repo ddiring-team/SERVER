@@ -13,6 +13,8 @@ import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import com.ddiring.ddiring_server.domain.distance.application.event.DistanceResetEvent;
 import com.ddiring.ddiring_server.domain.distance.domain.entity.enums.DistanceActionType;
+import com.ddiring.ddiring_server.domain.temperature.application.event.TemperatureRaiseEvent;
+import com.ddiring.ddiring_server.domain.temperature.domain.entity.enums.TemperatureActionType;
 import com.ddiring.ddiring_server.global.notification.FcmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -58,6 +60,7 @@ public class AttendanceService {
         });
 
         eventPublisher.publishEvent(DistanceResetEvent.broadcast(userId, DistanceActionType.ATTENDANCE));
+        eventPublisher.publishEvent(new TemperatureRaiseEvent(userId, TemperatureActionType.ATTENDANCE));
     }
 
     @Transactional(readOnly = true)
