@@ -63,6 +63,29 @@ public class AttendanceService {
         eventPublisher.publishEvent(new TemperatureRaiseEvent(userId, TemperatureActionType.ATTENDANCE));
     }
 
+    /**
+     * 보호자가 아직 오늘 출석하지 않은 어르신에게 출석 독려 푸시를 보낸다.
+     * 어르신이 오늘 이미 출석했으면 보낼 필요가 없어 예외로 막는다.
+     */
+    @Transactional(readOnly = true)
+    public void sendAttendanceReminder(Long guardianId, Long elderId) {
+        validateSameFamily(guardianId, elderId);
+
+        if (attendanceRepository.existsByUser_IdAndCheckedAt(elderId, LocalDate.now())) {
+            throw new AlreadyAttendedException();
+        }
+
+        User elder = userRepository.findById(elderId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (elder.getFcmToken() == null) {
+            return;
+        }
+        String elderName = elder.getName() != null ? elder.getName() : "어르신";
+        String message = elderName + "님, 오늘 아직 출석 체크를 안 하셨어요. 잊지 말고 출석해 주세요!";
+        fcmService.sendToTokens(List.of(elder.getFcmToken()), "출석 독려 알림", message);
+    }
+
     @Transactional(readOnly = true)
     public AttendanceTodayResponse getTodayAttendance(Long guardianId, Long elderId) {
         validateSameFamily(guardianId, elderId);
