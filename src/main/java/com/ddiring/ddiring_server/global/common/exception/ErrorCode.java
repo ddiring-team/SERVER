@@ -15,6 +15,7 @@ public enum ErrorCode {
     JSON_PARSE_ERROR(HttpStatus.BAD_REQUEST, "잘못된 JSON 형식의 요청입니다."),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다."),
+    DATA_INTEGRITY_VIOLATION(HttpStatus.CONFLICT, "요청이 현재 데이터 상태와 충돌합니다. 잠시 후 다시 시도해 주세요."),
 
     KAKAO_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "카카오 인증에 실패했습니다."),
     PROFILE_INCOMPLETE(HttpStatus.FORBIDDEN, "프로필 설정이 완료되지 않았습니다.");

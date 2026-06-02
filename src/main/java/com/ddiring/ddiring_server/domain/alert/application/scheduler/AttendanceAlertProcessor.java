@@ -2,10 +2,13 @@ package com.ddiring.ddiring_server.domain.alert.application.scheduler;
 
 import com.ddiring.ddiring_server.domain.alert.domain.entity.RiskAlertHistory;
 import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.AlertType;
+import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.NotificationType;
+import com.ddiring.ddiring_server.domain.alert.domain.repository.NotificationSettingRepository;
 import com.ddiring.ddiring_server.domain.alert.domain.repository.RiskAlertHistoryRepository;
 import com.ddiring.ddiring_server.domain.attendance.domain.repository.AttendanceRepository;
 import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRepository;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
+import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.global.notification.FcmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,6 +28,7 @@ public class AttendanceAlertProcessor {
     private final AttendanceRepository attendanceRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final RiskAlertHistoryRepository riskAlertHistoryRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
     private final FcmService fcmService;
 
     /**
@@ -45,7 +49,8 @@ public class AttendanceAlertProcessor {
         Long familyId = familyMemberRepository.findFamilyIdByUserId(elder.getId()).orElse(null);
         if (familyId == null) return false;
 
-        List<String> tokens = familyMemberRepository.findGuardianFcmTokensByFamilyId(familyId);
+        List<String> tokens = notificationSettingRepository.findEnabledFcmTokensByFamilyAndRoleAndType(
+                familyId, Role.GUARDIAN, NotificationType.ATTENDANCE);
         String elderName = elder.getName() != null ? elder.getName() : "어르신";
         String message = elderName + " 어르신께서 " + inactiveDays + "일째 출석을 하지 않으셨어요. 한 번 확인 부탁드려요.";
 

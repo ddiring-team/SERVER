@@ -1,7 +1,9 @@
 package com.ddiring.ddiring_server.domain.distance.application.scheduler;
 
+import com.ddiring.ddiring_server.domain.alert.application.service.NotificationSettingService;
 import com.ddiring.ddiring_server.domain.alert.domain.entity.RiskAlertHistory;
 import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.AlertType;
+import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.NotificationType;
 import com.ddiring.ddiring_server.domain.alert.domain.repository.RiskAlertHistoryRepository;
 import com.ddiring.ddiring_server.domain.distance.domain.entity.PairDistance;
 import com.ddiring.ddiring_server.domain.distance.domain.repository.PairDistanceRepository;
@@ -24,6 +26,7 @@ public class DistanceScheduler {
 
     private final PairDistanceRepository pairDistanceRepository;
     private final RiskAlertHistoryRepository riskAlertHistoryRepository;
+    private final NotificationSettingService notificationSettingService;
     private final FcmService fcmService;
 
     /**
@@ -64,10 +67,12 @@ public class DistanceScheduler {
         String toGuardian = elderName + " 어르신과의 안부거리가 10km에 도달했어요. 오늘 한 번 안부를 전해보세요.";
         String toElder = guardianName + "님과의 안부거리가 10km에 도달했어요.";
 
-        if (pd.getGuardian().getFcmToken() != null) {
+        if (pd.getGuardian().getFcmToken() != null
+                && notificationSettingService.isEnabled(pd.getGuardian().getId(), NotificationType.DISTANCE)) {
             fcmService.sendToTokens(List.of(pd.getGuardian().getFcmToken()), MAX_ALERT_TITLE, toGuardian);
         }
-        if (pd.getElder().getFcmToken() != null) {
+        if (pd.getElder().getFcmToken() != null
+                && notificationSettingService.isEnabled(pd.getElder().getId(), NotificationType.DISTANCE)) {
             fcmService.sendToTokens(List.of(pd.getElder().getFcmToken()), MAX_ALERT_TITLE, toElder);
         }
 
