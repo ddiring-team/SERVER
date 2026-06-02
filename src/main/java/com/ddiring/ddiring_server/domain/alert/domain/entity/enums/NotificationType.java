@@ -12,8 +12,7 @@ import lombok.RequiredArgsConstructor;
 public enum NotificationType {
     ATTENDANCE("출석 완료/미완료 알림"),
     SURVEY("설문 완료/미완료 알림"),
-    RISK("이상 징후 알림"),
-    DISTANCE("안부거리 알림");
+    RISK("이상 징후 알림");
 
     private final String label;
 }
