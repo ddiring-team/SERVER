@@ -1,6 +1,7 @@
 package com.ddiring.ddiring_server.domain.survey.presentation.dto.request;
 
 import com.ddiring.ddiring_server.domain.survey.domain.entity.enums.QuestionType;
+import com.ddiring.ddiring_server.domain.survey.domain.entity.enums.SurveyCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,9 +13,9 @@ import java.util.List;
 @Schema(description = "설문 질문 생성 요청")
 public record CreateSurveyQuestionRequest(
 
-        @Schema(description = "질문 카테고리 (기본 질문 선택 시 제공, 직접 추가 시 null)", example = "식사/수분")
-        @Size(max = 50)
-        String category,
+        @Schema(description = "질문 카테고리 코드 (기본 질문 선택 시 제공, 직접 추가 시 null)",
+                example = "MEAL")
+        SurveyCategory category,
 
         @Schema(description = "질문 내용", example = "오늘 세 끼를 모두 드셨나요?")
         @NotBlank @Size(max = 200)
