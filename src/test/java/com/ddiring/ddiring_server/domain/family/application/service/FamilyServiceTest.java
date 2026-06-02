@@ -17,7 +17,6 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.response.Invite
 import com.ddiring.ddiring_server.domain.family.presentation.dto.response.MemberListResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
-import com.ddiring.ddiring_server.domain.distance.application.service.DistanceService;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,9 +46,6 @@ class FamilyServiceTest {
 
     @Mock
     private UserRepository userRepository;
-
-    @Mock
-    private DistanceService distanceService;
 
     @InjectMocks
     private FamilyService familyService;
