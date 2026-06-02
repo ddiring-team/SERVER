@@ -23,7 +23,8 @@ public interface NotificationSettingRepository extends JpaRepository<Notificatio
      * 설정 행이 없으면 기본 ON으로 간주해 포함한다.
      */
     @Query("SELECT u.fcmToken FROM FamilyMember fm JOIN fm.user u " +
-            "WHERE fm.family.id = :familyId AND fm.role = :role AND fm.status = 'APPROVED' " +
+            "WHERE fm.family.id = :familyId AND fm.role = :role " +
+            "AND fm.status = com.ddiring.ddiring_server.domain.family.domain.entity.enums.MemberStatus.APPROVED " +
             "AND u.fcmToken IS NOT NULL " +
             "AND NOT EXISTS (SELECT 1 FROM NotificationSetting ns " +
             "                WHERE ns.user.id = u.id AND ns.type = :type AND ns.enabled = false)")

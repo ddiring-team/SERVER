@@ -6,7 +6,6 @@ import com.ddiring.ddiring_server.domain.alert.domain.repository.NotificationSet
 import com.ddiring.ddiring_server.domain.alert.presentation.dto.response.NotificationSettingResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
-import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,8 +46,7 @@ public class NotificationSettingService {
                 .orElse(null);
 
         if (setting == null) {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(UserNotFoundException::new);
+            User user = userRepository.getReferenceById(userId);
             setting = notificationSettingRepository.save(
                     NotificationSetting.builder()
                             .user(user)
