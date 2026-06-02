@@ -4,10 +4,12 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -16,12 +18,16 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class FirebaseConfig {
 
-    @Value("${firebase.service-account-path:firebase-service-account.json}")
+    private final ResourceLoader resourceLoader;
+
+    // 자격증명 위치. 배포: file:/app/firebase-service-account.json (볼륨 마운트), 로컬: classpath 기본값
+    @Value("${firebase.service-account-path:classpath:firebase-service-account.json}")
     private String serviceAccountPath;
 
-    // 배포 환경: 환경변수 FIREBASE_SERVICE_ACCOUNT_JSON 에 JSON 내용을 직접 넣어서 사용
+    // 폴백: 환경변수 FIREBASE_SERVICE_ACCOUNT_JSON 에 JSON 내용을 직접 넣어서 사용
     @Value("${FIREBASE_SERVICE_ACCOUNT_JSON:}")
     private String serviceAccountJson;
 
@@ -50,12 +56,15 @@ public class FirebaseConfig {
     }
 
     private InputStream resolveCredentialStream() throws IOException {
-        // 환경변수 우선 (배포 환경)
+        // 파일/클래스패스 리소스 우선 (file:, classpath: 접두사 모두 지원)
+        Resource resource = resourceLoader.getResource(serviceAccountPath);
+        if (resource.exists()) {
+            return resource.getInputStream();
+        }
+        // 환경변수에 JSON 원문을 직접 넣은 경우 폴백
         if (serviceAccountJson != null && !serviceAccountJson.isBlank()) {
             return new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8));
         }
-        // 파일 폴백 (로컬 개발) — ClassPathResource로 classpath: 접두사 처리
-        ClassPathResource resource = new ClassPathResource(serviceAccountPath);
-        return resource.exists() ? resource.getInputStream() : null;
+        return null;
     }
 }

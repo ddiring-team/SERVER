@@ -65,4 +65,12 @@ jobs:
             sudo docker stop ddiring-server || true
             sudo docker rm ddiring-server || true
             sudo docker pull ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
-            sudo docker run -d --name ddiring-server -p 8080:8080 --network ddiring-network -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" -e FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
+            # base64 시크릿을 디코드해 파일로 저장 (개행·따옴표 깨짐 방지)
+            sudo mkdir -p /opt/ddiring
+            echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}' | base64 -d | sudo tee /opt/ddiring/firebase-service-account.json > /dev/null
+            sudo chmod 600 /opt/ddiring/firebase-service-account.json
+            sudo docker run -d --name ddiring-server -p 8080:8080 --network ddiring-network \
+              -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+              -e FIREBASE_SERVICE_ACCOUNT_PATH=file:/app/firebase-service-account.json \
+              -v /opt/ddiring/firebase-service-account.json:/app/firebase-service-account.json:ro \
+              ${{ steps.login-ecr.outputs.registry }}/ddiring-server:latest
