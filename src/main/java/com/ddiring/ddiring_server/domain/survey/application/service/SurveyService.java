@@ -90,7 +90,7 @@ public class SurveyService {
             SurveyQuestion question = surveyQuestionRepository.save(
                     SurveyQuestion.builder()
                             .survey(survey)
-                            .category(q.category())
+                            .category(q.category() == null ? null : q.category().getDisplayName())
                             .content(q.content())
                             .questionType(q.questionType())
                             .orderNum(q.orderNum())
