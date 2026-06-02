@@ -1,5 +1,7 @@
 package com.ddiring.ddiring_server.domain.survey.application.service;
 
+import com.ddiring.ddiring_server.domain.alert.application.service.NotificationSettingService;
+import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.NotificationType;
 import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRepository;
 import com.ddiring.ddiring_server.domain.survey.application.dto.TransformedQuestionData;
 import com.ddiring.ddiring_server.domain.survey.application.service.SurveySessionStarter.PreparedSession;
@@ -51,6 +53,7 @@ public class SurveySessionService {
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
     private final FcmService fcmService;
+    private final NotificationSettingService notificationSettingService;
     private final ObjectMapper objectMapper;
 
     private static final String SURVEY_REMINDER_TITLE = "설문 독려 알림";
@@ -144,6 +147,9 @@ public class SurveySessionService {
                 .orElseThrow(UserNotFoundException::new);
 
         if (elder.getFcmToken() == null) {
+            return;
+        }
+        if (!notificationSettingService.isEnabled(elderId, NotificationType.SURVEY)) {
             return;
         }
         String elderName = elder.getName() != null ? elder.getName() : "어르신";

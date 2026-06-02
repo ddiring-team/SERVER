@@ -1,5 +1,7 @@
 package com.ddiring.ddiring_server.domain.survey.application.service;
 
+import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.NotificationType;
+import com.ddiring.ddiring_server.domain.alert.domain.repository.NotificationSettingRepository;
 import com.ddiring.ddiring_server.domain.family.domain.entity.Family;
 import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRepository;
 import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyRepository;
@@ -57,6 +59,7 @@ public class SurveyService {
     private final UserRepository userRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyRepository familyRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
     private final FcmService fcmService;
 
     @Transactional
@@ -157,7 +160,8 @@ public class SurveyService {
         }
         survey.activate();
 
-        List<String> elderTokens = familyMemberRepository.findElderFcmTokensByFamilyId(survey.getFamily().getId());
+        List<String> elderTokens = notificationSettingRepository.findEnabledFcmTokensByFamilyAndRoleAndType(
+                survey.getFamily().getId(), Role.ELDER, NotificationType.SURVEY);
         fcmService.sendToTokens(elderTokens, "새 설문이 도착했어요!", "'" + survey.getTitle() + "' 설문에 참여해 주세요.");
     }
 

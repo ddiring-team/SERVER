@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -123,6 +124,15 @@ public class GlobalExceptionHandler {
                 ErrorCode.JSON_PARSE_ERROR.getMessage(),
                 details
         );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("데이터 무결성 위반 : {}", e.getMessage());
+
+        ErrorCode errorCode = ErrorCode.DATA_INTEGRITY_VIOLATION;
+
+        return buildError(errorCode.getStatus(), errorCode.getMessage(), null);
     }
 
     @ExceptionHandler(Exception.class)

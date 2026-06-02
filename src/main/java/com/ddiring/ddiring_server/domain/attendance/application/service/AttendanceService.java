@@ -1,5 +1,8 @@
 package com.ddiring.ddiring_server.domain.attendance.application.service;
 
+import com.ddiring.ddiring_server.domain.alert.application.service.NotificationSettingService;
+import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.NotificationType;
+import com.ddiring.ddiring_server.domain.alert.domain.repository.NotificationSettingRepository;
 import com.ddiring.ddiring_server.domain.attendance.domain.entity.Attendance;
 import com.ddiring.ddiring_server.domain.attendance.domain.repository.AttendanceRepository;
 import com.ddiring.ddiring_server.domain.attendance.exception.AlreadyAttendedException;
@@ -9,6 +12,7 @@ import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRe
 import com.ddiring.ddiring_server.domain.family.exception.ElderNotInFamilyException;
 import com.ddiring.ddiring_server.domain.family.exception.FamilyMemberNotFoundException;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
+import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import com.ddiring.ddiring_server.domain.distance.application.event.DistanceResetEvent;
@@ -30,6 +34,8 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
+    private final NotificationSettingService notificationSettingService;
     private final UserRepository userRepository;
     private final FcmService fcmService;
     private final ApplicationEventPublisher eventPublisher;
@@ -54,7 +60,8 @@ public class AttendanceService {
 
         familyMemberRepository.findFamilyIdByUserId(userId)
                 .ifPresent(familyId -> {
-            List<String> guardianTokens = familyMemberRepository.findGuardianFcmTokensByFamilyId(familyId);
+            List<String> guardianTokens = notificationSettingRepository.findEnabledFcmTokensByFamilyAndRoleAndType(
+                    familyId, Role.GUARDIAN, NotificationType.ATTENDANCE);
             String elderName = user.getName() != null ? user.getName() : "어르신";
             fcmService.sendToTokens(guardianTokens, "출석 완료 알림", elderName + "님이 오늘 출석을 완료했어요!");
         });
@@ -79,6 +86,9 @@ public class AttendanceService {
                 .orElseThrow(UserNotFoundException::new);
 
         if (elder.getFcmToken() == null) {
+            return;
+        }
+        if (!notificationSettingService.isEnabled(elderId, NotificationType.ATTENDANCE)) {
             return;
         }
         String elderName = elder.getName() != null ? elder.getName() : "어르신";

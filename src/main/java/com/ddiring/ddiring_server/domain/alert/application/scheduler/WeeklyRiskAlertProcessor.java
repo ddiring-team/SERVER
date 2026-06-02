@@ -2,8 +2,11 @@ package com.ddiring.ddiring_server.domain.alert.application.scheduler;
 
 import com.ddiring.ddiring_server.domain.alert.domain.entity.RiskAlertHistory;
 import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.AlertType;
+import com.ddiring.ddiring_server.domain.alert.domain.entity.enums.NotificationType;
+import com.ddiring.ddiring_server.domain.alert.domain.repository.NotificationSettingRepository;
 import com.ddiring.ddiring_server.domain.alert.domain.repository.RiskAlertHistoryRepository;
 import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRepository;
+import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.domain.survey.application.service.WeeklyReportService;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.WeeklyReportResponse;
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
@@ -28,6 +31,7 @@ public class WeeklyRiskAlertProcessor {
     private final WeeklyReportService weeklyReportService;
     private final FamilyMemberRepository familyMemberRepository;
     private final RiskAlertHistoryRepository riskAlertHistoryRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
     private final FcmService fcmService;
 
     /**
@@ -64,7 +68,8 @@ public class WeeklyRiskAlertProcessor {
         Long familyId = familyMemberRepository.findFamilyIdByUserId(elder.getId()).orElse(null);
         if (familyId == null) return false;
 
-        List<String> tokens = familyMemberRepository.findGuardianFcmTokensByFamilyId(familyId);
+        List<String> tokens = notificationSettingRepository.findEnabledFcmTokensByFamilyAndRoleAndType(
+                familyId, Role.GUARDIAN, NotificationType.RISK);
         String elderName = elder.getName() != null ? elder.getName() : "어르신";
         String message = elderName + " 어르신의 지난 주 [" + pattern.category() + "] 항목에서 주의가 필요해요: "
                 + pattern.observation();
