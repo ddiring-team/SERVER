@@ -11,8 +11,6 @@ import com.ddiring.ddiring_server.domain.family.exception.FamilyMemberNotFoundEx
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
-import com.ddiring.ddiring_server.domain.distance.application.event.DistanceResetEvent;
-import com.ddiring.ddiring_server.domain.distance.domain.entity.enums.DistanceActionType;
 import com.ddiring.ddiring_server.domain.temperature.application.event.TemperatureRaiseEvent;
 import com.ddiring.ddiring_server.domain.temperature.domain.entity.enums.TemperatureActionType;
 import com.ddiring.ddiring_server.global.notification.FcmService;
@@ -59,7 +57,6 @@ public class AttendanceService {
             fcmService.sendToTokens(guardianTokens, "출석 완료 알림", elderName + "님이 오늘 출석을 완료했어요!");
         });
 
-        eventPublisher.publishEvent(DistanceResetEvent.broadcast(userId, DistanceActionType.ATTENDANCE));
         eventPublisher.publishEvent(new TemperatureRaiseEvent(userId, TemperatureActionType.ATTENDANCE));
     }
 
