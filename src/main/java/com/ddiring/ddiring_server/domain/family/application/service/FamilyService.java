@@ -20,8 +20,10 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.response.Member
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
+import com.ddiring.ddiring_server.domain.family.application.event.FamilyMemberApprovedEvent;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,7 @@ public class FamilyService {
     private final FamilyRepository familyRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public FamilyStatusResponse getFamilyStatus(Long userId) {
@@ -134,6 +137,21 @@ public class FamilyService {
     public void approveMember(Long userId, Long memberId) {
         FamilyMember member = validateFamilyOwner(userId, memberId);
         member.approve();
+        notifyApproval(member);
+    }
+
+    /**
+     * 가입 승인 알림 이벤트를 발행한다. 실제 FCM 발송은 트랜잭션 커밋 이후에 수행된다.
+     * LAZY 연관(user/family)은 트랜잭션이 살아 있는 지금 시점에 미리 추출한다.
+     * FCM 토큰이 없으면 이벤트를 발행하지 않는다.
+     */
+    private void notifyApproval(FamilyMember member) {
+        String token = member.getUser().getFcmToken();
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        eventPublisher.publishEvent(
+                new FamilyMemberApprovedEvent(token, member.getFamily().getName()));
     }
 
     @Transactional
