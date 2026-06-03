@@ -21,6 +21,7 @@ import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
+import com.ddiring.ddiring_server.global.notification.FcmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,10 +37,12 @@ public class FamilyService {
     private static final String INVITE_CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int INVITE_CODE_LENGTH = 6;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String APPROVAL_ALERT_TITLE = "가족 가입 승인";
 
     private final FamilyRepository familyRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
+    private final FcmService fcmService;
 
     @Transactional(readOnly = true)
     public FamilyStatusResponse getFamilyStatus(Long userId) {
@@ -134,6 +137,20 @@ public class FamilyService {
     public void approveMember(Long userId, Long memberId) {
         FamilyMember member = validateFamilyOwner(userId, memberId);
         member.approve();
+        notifyApproval(member);
+    }
+
+    /**
+     * 가입 신청이 승인된 당사자에게 가입 승인 푸시 알림을 발송한다.
+     * FCM 토큰이 없으면 조용히 생략한다.
+     */
+    private void notifyApproval(FamilyMember member) {
+        String token = member.getUser().getFcmToken();
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        String body = "'" + member.getFamily().getName() + "' 가족 가입이 승인되었어요.";
+        fcmService.sendToTokens(List.of(token), APPROVAL_ALERT_TITLE, body);
     }
 
     @Transactional
