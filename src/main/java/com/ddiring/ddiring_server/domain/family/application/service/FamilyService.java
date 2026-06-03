@@ -20,9 +20,10 @@ import com.ddiring.ddiring_server.domain.family.presentation.dto.response.Member
 import com.ddiring.ddiring_server.domain.user.domain.entity.User;
 import com.ddiring.ddiring_server.domain.user.domain.entity.enums.Role;
 import com.ddiring.ddiring_server.domain.user.domain.repository.UserRepository;
+import com.ddiring.ddiring_server.domain.family.application.event.FamilyMemberApprovedEvent;
 import com.ddiring.ddiring_server.domain.user.exception.UserNotFoundException;
-import com.ddiring.ddiring_server.global.notification.FcmService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,12 +38,11 @@ public class FamilyService {
     private static final String INVITE_CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int INVITE_CODE_LENGTH = 6;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final String APPROVAL_ALERT_TITLE = "가족 가입 승인";
 
     private final FamilyRepository familyRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
-    private final FcmService fcmService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public FamilyStatusResponse getFamilyStatus(Long userId) {
@@ -141,16 +141,17 @@ public class FamilyService {
     }
 
     /**
-     * 가입 신청이 승인된 당사자에게 가입 승인 푸시 알림을 발송한다.
-     * FCM 토큰이 없으면 조용히 생략한다.
+     * 가입 승인 알림 이벤트를 발행한다. 실제 FCM 발송은 트랜잭션 커밋 이후에 수행된다.
+     * LAZY 연관(user/family)은 트랜잭션이 살아 있는 지금 시점에 미리 추출한다.
+     * FCM 토큰이 없으면 이벤트를 발행하지 않는다.
      */
     private void notifyApproval(FamilyMember member) {
         String token = member.getUser().getFcmToken();
         if (token == null || token.isBlank()) {
             return;
         }
-        String body = "'" + member.getFamily().getName() + "' 가족 가입이 승인되었어요.";
-        fcmService.sendToTokens(List.of(token), APPROVAL_ALERT_TITLE, body);
+        eventPublisher.publishEvent(
+                new FamilyMemberApprovedEvent(token, member.getFamily().getName()));
     }
 
     @Transactional
