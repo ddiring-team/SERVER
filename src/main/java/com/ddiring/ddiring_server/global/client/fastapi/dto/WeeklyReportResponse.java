@@ -22,7 +22,7 @@ public record WeeklyReportResponse(
     @Schema(description = "AI가 감지한 개별 패턴")
     public record Pattern(
 
-            @Schema(description = "패턴이 속한 설문 카테고리", example = "컨디션")
+            @Schema(description = "패턴이 속한 설문 카테고리", example = "건강 상태")
             String category,
 
             @Schema(description = "관찰된 내용 설명", example = "주 3일 이상 '잠을 설쳤다'고 응답")
@@ -41,15 +41,16 @@ public record WeeklyReportResponse(
     public record Stats(
 
             @Schema(description = "해당 주에 분석된 설문 카테고리 목록",
-                    example = "[\"식사/수분\", \"컨디션\", \"감정\", \"활동/외출\"]")
+                    example = "[\"식사 / 수분\", \"건강 상태\", \"기분 / 감정\", \"활동 / 외출\"]")
             List<String> categories,
 
             @Schema(description = "리포트 대상 기간 및 응답 일수 정보")
             @JsonProperty("date_range")
             DateRange dateRange,
 
-            @Schema(description = "카테고리별 세부 통계 (키: 카테고리명, 값: 카테고리별 집계 객체)",
-                    example = "{\"식사/수분\": {\"positive\": 6, \"negative\": 0}, \"컨디션\": {\"positive\": 3, \"negative\": 3}}")
+            @Schema(description = "카테고리별 세부 통계 (키: 카테고리명, 값: timeline/value_counts 객체)",
+                    example = "{\"식사 / 수분\": {\"value_counts\": {\"예\": 5, \"아니요\": 2}}, "
+                            + "\"건강 상태\": {\"value_counts\": {\"괜찮아요\": 4, \"조금 불편\": 3}}}")
             @JsonProperty("by_category")
             Map<String, Object> byCategory
     ) {}

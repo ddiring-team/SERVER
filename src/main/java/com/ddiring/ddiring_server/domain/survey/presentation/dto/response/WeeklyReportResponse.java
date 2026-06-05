@@ -1,7 +1,6 @@
 package com.ddiring.ddiring_server.domain.survey.presentation.dto.response;
 
 import com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportResponse.Pattern;
-import com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportResponse.Stats;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
@@ -28,6 +27,6 @@ public record WeeklyReportResponse(
         @Schema(description = "패턴 목록 (주의 항목 등)")
         List<Pattern> patterns,
 
-        @Schema(description = "통계 정보")
-        Stats stats
+        @Schema(description = "카테고리별 상태 요약 (고정 카테고리 순서)")
+        List<CategorySummary> categorySummaries
 ) {}
