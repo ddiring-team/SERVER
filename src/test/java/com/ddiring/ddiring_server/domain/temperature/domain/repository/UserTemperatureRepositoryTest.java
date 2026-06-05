@@ -58,50 +58,50 @@ class UserTemperatureRepositoryTest {
         return repository.findById(userId).orElseThrow().getTemperature();
     }
 
-    @DisplayName("최초 활동 시 row가 없으면 BASE+STEP(37.5)으로 INSERT 된다")
+    @DisplayName("최초 활동 시 row가 없으면 BASE+STEP으로 INSERT 된다")
     @Test
     void upsert_최초_INSERT() {
         Long userId = persistUserOnly();
 
         repository.upsertAttendance(userId, today, BASE, STEP, MAX);
 
-        assertThat(temperatureOf(userId)).isEqualByComparingTo(BigDecimal.valueOf(37.5));
+        assertThat(temperatureOf(userId)).isEqualByComparingTo(BASE.add(STEP));
     }
 
     @DisplayName("기존 row가 있으면 STEP 만큼 UPDATE 된다")
     @Test
     void upsert_기존_UPDATE() {
-        Long userId = persistWithTemperature(BigDecimal.valueOf(36.5), null);
+        Long userId = persistWithTemperature(BASE, null);
 
         repository.upsertAttendance(userId, today, BASE, STEP, MAX);
 
-        assertThat(temperatureOf(userId)).isEqualByComparingTo(BigDecimal.valueOf(37.5));
+        assertThat(temperatureOf(userId)).isEqualByComparingTo(BASE.add(STEP));
     }
 
     @DisplayName("오늘 이미 상승한 타입은 다시 호출해도 온도가 변하지 않는다 (일일 멱등)")
     @Test
     void upsert_같은날_멱등() {
-        Long userId = persistWithTemperature(BigDecimal.valueOf(36.5), today);
+        Long userId = persistWithTemperature(BASE, today);
 
         repository.upsertAttendance(userId, today, BASE, STEP, MAX);
 
-        assertThat(temperatureOf(userId)).isEqualByComparingTo(BigDecimal.valueOf(36.5));
+        assertThat(temperatureOf(userId)).isEqualByComparingTo(BASE);
     }
 
     @DisplayName("어제 상승한 타입은 오늘 다시 상승한다")
     @Test
     void upsert_날짜경과_재상승() {
-        Long userId = persistWithTemperature(BigDecimal.valueOf(36.5), today.minusDays(1));
+        Long userId = persistWithTemperature(BASE, today.minusDays(1));
 
         repository.upsertAttendance(userId, today, BASE, STEP, MAX);
 
-        assertThat(temperatureOf(userId)).isEqualByComparingTo(BigDecimal.valueOf(37.5));
+        assertThat(temperatureOf(userId)).isEqualByComparingTo(BASE.add(STEP));
     }
 
     @DisplayName("상한(MAX)을 넘지 않는다")
     @Test
     void upsert_상한() {
-        Long userId = persistWithTemperature(BigDecimal.valueOf(99.5), null);
+        Long userId = persistWithTemperature(MAX, null);
 
         repository.upsertAttendance(userId, today, BASE, STEP, MAX);
 
@@ -111,11 +111,11 @@ class UserTemperatureRepositoryTest {
     @DisplayName("활동 타입이 다르면 같은 날이라도 각각 독립적으로 상승한다")
     @Test
     void upsert_타입별_독립() {
-        Long userId = persistWithTemperature(BigDecimal.valueOf(36.5), today); // 오늘 출석 이미 함
+        Long userId = persistWithTemperature(BASE, today); // 오늘 출석 이미 함
 
         repository.upsertAttendance(userId, today, BASE, STEP, MAX); // 멱등 스킵
         repository.upsertSurvey(userId, today, BASE, STEP, MAX);     // 상승
 
-        assertThat(temperatureOf(userId)).isEqualByComparingTo(BigDecimal.valueOf(37.5));
+        assertThat(temperatureOf(userId)).isEqualByComparingTo(BASE.add(STEP));
     }
 }

@@ -17,7 +17,7 @@ import java.time.LocalDate;
 public class UserTemperature extends BaseEntity {
 
     public static final BigDecimal BASE = BigDecimal.valueOf(36.5);
-    public static final BigDecimal STEP = BigDecimal.valueOf(1.0);
+    public static final BigDecimal STEP = BigDecimal.valueOf(0.1);
     public static final BigDecimal MAX = BigDecimal.valueOf(100.0);
 
     @Id
