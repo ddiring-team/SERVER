@@ -2,9 +2,10 @@ package com.ddiring.ddiring_server.global.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -24,11 +25,15 @@ public class RedirectUrlCookieFilter extends OncePerRequestFilter {
         if (request.getRequestURI().startsWith("/oauth2/authorization")) {
             String redirectUrl = request.getParameter(REDIRECT_URI_PARAM);
             if (StringUtils.hasText(redirectUrl)) {
-                Cookie cookie = new Cookie(REDIRECT_URI_COOKIE_NAME, redirectUrl);
-                cookie.setPath("/");
-                cookie.setHttpOnly(true);
-                cookie.setMaxAge(COOKIE_MAX_AGE);
-                response.addCookie(cookie);
+                // 카카오 콜백(cross-site)에서도 쿠키가 실려 오도록 SameSite=None; Secure 로 내린다.
+                ResponseCookie cookie = ResponseCookie.from(REDIRECT_URI_COOKIE_NAME, redirectUrl)
+                        .path("/")
+                        .httpOnly(true)
+                        .secure(true)
+                        .sameSite("None")
+                        .maxAge(COOKIE_MAX_AGE)
+                        .build();
+                response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
             }
         }
         filterChain.doFilter(request, response);

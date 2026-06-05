@@ -7,6 +7,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
@@ -38,11 +40,16 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
             deleteCookie(request, response, OAUTH2_REQUEST_COOKIE_NAME);
             return;
         }
-        Cookie cookie = new Cookie(OAUTH2_REQUEST_COOKIE_NAME, serialize(authorizationRequest));
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(COOKIE_MAX_AGE);
-        response.addCookie(cookie);
+        // 카카오 → 서버 콜백은 cross-site 리다이렉트이므로, 콜백 요청에 쿠키가 실려 오려면
+        // SameSite=None; Secure 가 필요하다. (HTTPS 운영 환경 기준)
+        ResponseCookie cookie = ResponseCookie.from(OAUTH2_REQUEST_COOKIE_NAME, serialize(authorizationRequest))
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .maxAge(COOKIE_MAX_AGE)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     @Override
@@ -105,10 +112,15 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         Arrays.stream(request.getCookies())
                 .filter(c -> name.equals(c.getName()))
                 .forEach(c -> {
-                    Cookie cookie = new Cookie(name, "");
-                    cookie.setPath("/");
-                    cookie.setMaxAge(0);
-                    response.addCookie(cookie);
+                    // 만료 쿠키도 동일한 속성(SameSite=None; Secure)으로 내려야 브라우저가 매칭해 삭제한다.
+                    ResponseCookie cookie = ResponseCookie.from(name, "")
+                            .path("/")
+                            .httpOnly(true)
+                            .secure(true)
+                            .sameSite("None")
+                            .maxAge(0)
+                            .build();
+                    response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
                 });
     }
 }
