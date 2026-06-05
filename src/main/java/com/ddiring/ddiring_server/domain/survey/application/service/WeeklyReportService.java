@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,7 +72,7 @@ public class WeeklyReportService {
         if (result.isEmpty()) {
             log.warn("주간 리포트 생성 실패: elderId={}, {}~{}", elderId, startDate, endDate);
             return new WeeklyReportResponse(elderId, elderName, startDate, endDate,
-                    null, null, buildCategorySummaries(null, null));
+                    null, null, buildCategorySummaries(null, null, startDate, endDate));
         }
 
         com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportResponse fastApiResponse = result.get();
@@ -82,7 +83,7 @@ public class WeeklyReportService {
                 endDate,
                 fastApiResponse.report(),
                 fastApiResponse.patterns(),
-                buildCategorySummaries(fastApiResponse.patterns(), fastApiResponse.stats())
+                buildCategorySummaries(fastApiResponse.patterns(), fastApiResponse.stats(), startDate, endDate)
         );
     }
 
@@ -94,14 +95,20 @@ public class WeeklyReportService {
             SurveyCategory.ACTIVITY
     );
 
+    /** 응답 일수가 전체 기간의 이 비율 미만이면 "양호"로 단정하지 않고 데이터 부족으로 본다. */
+    private static final double MIN_RESPONSE_RATIO = 0.5;
+
     /**
      * AI patterns(우려 패턴) + 응답 유무(stats.by_category)를 결합해 카테고리별 상태 카드를 만든다.
      * 점수화 대신, AI가 검증을 거쳐 산출한 patterns의 severity를 그대로 사용한다.
+     * 단, 우려 패턴이 없더라도 응답 일수가 기간 대비 부족하면 GOOD을 INSUFFICIENT로 다운그레이드한다.
      */
-    private List<CategorySummary> buildCategorySummaries(List<Pattern> patterns, Stats stats) {
+    private List<CategorySummary> buildCategorySummaries(List<Pattern> patterns, Stats stats,
+                                                         LocalDate startDate, LocalDate endDate) {
         Map<String, Object> byCategory = (stats == null || stats.byCategory() == null)
                 ? Map.of() : stats.byCategory();
         Map<String, Pattern> worstByCategory = worstPatternByCategory(patterns);
+        long totalDays = ChronoUnit.DAYS.between(startDate, endDate) + 1;
 
         return SUMMARY_CATEGORIES.stream()
                 .map(category -> {
@@ -112,13 +119,23 @@ public class WeeklyReportService {
                     }
                     Pattern pattern = worstByCategory.get(displayName);
                     CategoryStatus status = statusOf(pattern);
+                    String note = pattern == null ? null : pattern.observation();
+                    String severity = pattern == null ? null : pattern.severity();
+
+                    // 우려 패턴이 없어 GOOD으로 떨어졌지만 응답 일수가 부족하면 데이터 부족으로 보정한다.
+                    if (status == CategoryStatus.GOOD && responseDays < totalDays * MIN_RESPONSE_RATIO) {
+                        status = CategoryStatus.INSUFFICIENT;
+                        note = String.format("전체 %d일 중 %d일만 응답이 수집되어 상태를 단정하기 어려움",
+                                totalDays, responseDays);
+                    }
+
                     return new CategorySummary(
                             category.name(),
                             displayName,
                             status.name(),
                             status.getLabel(),
-                            pattern == null ? null : pattern.observation(),
-                            pattern == null ? null : pattern.severity(),
+                            note,
+                            severity,
                             responseDays
                     );
                 })
