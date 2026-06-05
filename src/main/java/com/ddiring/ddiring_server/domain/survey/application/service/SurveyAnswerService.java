@@ -38,6 +38,7 @@ public class SurveyAnswerService {
     private final SurveyQuestionOptionRepository optionRepository;
     private final SurveyAnswerRepository answerRepository;
     private final DailySummaryService dailySummaryService;
+    private final WeeklyReportService weeklyReportService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -83,6 +84,8 @@ public class SurveyAnswerService {
             @Override
             public void afterCommit() {
                 dailySummaryService.generateAndSave(sessionId);
+                // 새 응답이 반영된 세션 날짜를 포함하는 주간 리포트 캐시 무효화
+                weeklyReportService.evictReportsContaining(userId, session.getSessionDate());
             }
         });
     }

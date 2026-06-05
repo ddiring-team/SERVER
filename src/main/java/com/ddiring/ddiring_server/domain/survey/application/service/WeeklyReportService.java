@@ -1,81 +1,56 @@
 package com.ddiring.ddiring_server.domain.survey.application.service;
 
 import com.ddiring.ddiring_server.domain.family.domain.repository.FamilyMemberRepository;
-import com.ddiring.ddiring_server.domain.survey.domain.entity.SurveySession;
-import com.ddiring.ddiring_server.domain.survey.domain.repository.SurveyAnswerRepository;
-import com.ddiring.ddiring_server.domain.survey.domain.repository.SurveySessionRepository;
+import com.ddiring.ddiring_server.domain.survey.application.cache.WeeklyReportCacheKey;
 import com.ddiring.ddiring_server.domain.survey.exception.SurveySessionNotOwnedException;
 import com.ddiring.ddiring_server.domain.survey.presentation.dto.response.WeeklyReportResponse;
-import com.ddiring.ddiring_server.global.client.fastapi.FastApiSurveyClient;
-import com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportRequest;
+import com.ddiring.ddiring_server.global.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class WeeklyReportService {
 
-    private final SurveySessionRepository sessionRepository;
-    private final SurveyAnswerRepository answerRepository;
     private final FamilyMemberRepository familyMemberRepository;
-    private final FastApiSurveyClient fastApiSurveyClient;
+    private final WeeklyReportGenerator generator;
+    private final CacheManager cacheManager;
 
     @Transactional(readOnly = true)
     public WeeklyReportResponse getWeeklyReport(Long requesterId, Long elderId, LocalDate startDate, LocalDate endDate) {
         verifyInSameFamily(requesterId, elderId);
-        return generateForElder(elderId, startDate, endDate);
+        return generator.generate(elderId, startDate, endDate);
     }
 
-    @Transactional(readOnly = true)
+    /** 스케줄러 등 권한 검증이 필요 없는 내부 호출용 진입점. */
     public WeeklyReportResponse generateForElder(Long elderId, LocalDate startDate, LocalDate endDate) {
-        List<SurveySession> sessions = sessionRepository.findCompletedByElderIdAndDateRange(elderId, startDate, endDate);
+        return generator.generate(elderId, startDate, endDate);
+    }
 
-        String elderName = sessions.isEmpty() ? "" : sessions.get(0).getElder().getName();
-
-        List<WeeklyReportRequest.DailyResponse> weeklyResponses = sessions.stream()
-                .map(session -> {
-                    Map<String, String> responses = buildResponsesMap(session.getId());
-                    return new WeeklyReportRequest.DailyResponse(
-                            session.getSessionDate().toString(),
-                            responses
-                    );
-                })
-                .filter(dr -> !dr.responses().isEmpty())
-                .toList();
-
-        WeeklyReportRequest request = new WeeklyReportRequest(
-                new WeeklyReportRequest.ElderProfile(elderName),
-                startDate.toString(),
-                endDate.toString(),
-                weeklyResponses
-        );
-
-        Optional<com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportResponse> result =
-                fastApiSurveyClient.getWeeklyReport(request);
-
-        if (result.isEmpty()) {
-            log.warn("주간 리포트 생성 실패: elderId={}, {}~{}", elderId, startDate, endDate);
-            return new WeeklyReportResponse(elderId, elderName, startDate, endDate, null, null);
+    /**
+     * 어르신이 새 설문에 응답하면, 해당 날짜를 포함하는 기간의 리포트 캐시만 선택적으로 제거한다.
+     * 이미 종료된 과거 주는 영향을 받지 않으므로 그대로 둔다.
+     */
+    public void evictReportsContaining(Long elderId, LocalDate date) {
+        Cache cache = cacheManager.getCache(CacheConfig.WEEKLY_REPORT_CACHE);
+        if (cache == null) {
+            return;
         }
-
-        com.ddiring.ddiring_server.global.client.fastapi.dto.WeeklyReportResponse fastApiResponse = result.get();
-        return new WeeklyReportResponse(
-                elderId,
-                elderName,
-                startDate,
-                endDate,
-                fastApiResponse.report(),
-                fastApiResponse.patterns()
-        );
+        if (!(cache.getNativeCache() instanceof com.github.benmanes.caffeine.cache.Cache<?, ?> caffeine)) {
+            return;
+        }
+        caffeine.asMap().keySet().removeIf(k ->
+                k instanceof WeeklyReportCacheKey key
+                        && key.elderId().equals(elderId)
+                        && !date.isBefore(key.startDate())
+                        && !date.isAfter(key.endDate()));
     }
 
     private void verifyInSameFamily(Long requesterId, Long elderId) {
@@ -86,14 +61,5 @@ public class WeeklyReportService {
         if (!requesterFamilyId.equals(elderFamilyId)) {
             throw new SurveySessionNotOwnedException();
         }
-    }
-
-    private Map<String, String> buildResponsesMap(Long sessionId) {
-        List<Object[]> rows = answerRepository.findCategoryAnswersBySessionId(sessionId);
-        Map<String, String> map = new LinkedHashMap<>();
-        for (Object[] row : rows) {
-            map.putIfAbsent((String) row[0], (String) row[1]);
-        }
-        return map;
     }
 }
