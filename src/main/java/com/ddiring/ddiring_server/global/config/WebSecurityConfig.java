@@ -2,6 +2,7 @@ package com.ddiring.ddiring_server.global.config;
 
 import com.ddiring.ddiring_server.global.security.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.ddiring.ddiring_server.global.security.JwtAuthenticationFilter;
+import com.ddiring.ddiring_server.global.security.OAuthFailureHandler;
 import com.ddiring.ddiring_server.global.security.OAuthSuccessHandler;
 import com.ddiring.ddiring_server.global.security.RedirectUrlCookieFilter;
 import com.ddiring.ddiring_server.global.security.application.service.CustomOAuth2UserService;
@@ -30,6 +31,7 @@ public class WebSecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuthSuccessHandler oAuthSuccessHandler;
+    private final OAuthFailureHandler oAuthFailureHandler;
     private final RedirectUrlCookieFilter redirectUrlCookieFilter;
     private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
@@ -69,7 +71,8 @@ public class WebSecurityConfig {
                         .authorizationEndpoint(authorization -> authorization
                                 .authorizationRequestRepository(cookieAuthorizationRequestRepository))
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-                        .successHandler(oAuthSuccessHandler))
+                        .successHandler(oAuthSuccessHandler)
+                        .failureHandler(oAuthFailureHandler))
                 .addFilterAfter(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(redirectUrlCookieFilter, OAuth2AuthorizationRequestRedirectFilter.class)
                 .exceptionHandling(exception -> exception
