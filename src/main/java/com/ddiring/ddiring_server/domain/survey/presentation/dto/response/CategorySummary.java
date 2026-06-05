@@ -12,7 +12,7 @@ public record CategorySummary(
         @Schema(description = "카테고리 표시명", example = "식사 / 수분")
         String displayName,
 
-        @Schema(description = "상태 코드 (GOOD / INFO / ATTENTION / NO_DATA)", example = "ATTENTION")
+        @Schema(description = "상태 코드 (GOOD / INFO / ATTENTION / INSUFFICIENT / NO_DATA)", example = "ATTENTION")
         String status,
 
         @Schema(description = "상태 표시 라벨", example = "주의 필요")
