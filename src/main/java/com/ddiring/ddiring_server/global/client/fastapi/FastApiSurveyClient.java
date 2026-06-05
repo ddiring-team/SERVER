@@ -25,6 +25,7 @@ public class FastApiSurveyClient {
     private static final long RETRY_BACKOFF_MS = 300L;
 
     private final RestClient fastApiRestClient;
+    private final RestClient fastApiWeeklyReportRestClient;
 
     /**
      * FastAPI 질문 변환 호출 (동기).
@@ -109,7 +110,7 @@ public class FastApiSurveyClient {
     public Optional<WeeklyReportResponse> getWeeklyReport(WeeklyReportRequest request) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                WeeklyReportResponse response = fastApiRestClient.post()
+                WeeklyReportResponse response = fastApiWeeklyReportRestClient.post()
                         .uri(WEEKLY_REPORT_URI)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(request)
