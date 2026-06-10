@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SurveyTransformRequestAssembler {
 
-    private static final int RECENT_RESPONSE_DAYS = 3;
+    private static final int RECENT_RESPONSE_DAYS = 7;
 
     private final SurveySessionRepository surveySessionRepository;
     private final SurveyAnswerRepository surveyAnswerRepository;
@@ -48,7 +48,7 @@ public class SurveyTransformRequestAssembler {
         );
     }
 
-    // 최근 3일(오늘 포함) 완료된 세션의 카테고리별 답변을 수집한다.
+    // 최근 7일(오늘 포함) 완료된 세션의 카테고리별 답변을 수집한다.
     private List<TransformQuestionsRequest.RecentResponse> buildRecentResponses(Long elderId) {
         LocalDate since = LocalDate.now().minusDays(RECENT_RESPONSE_DAYS - 1L);
         List<SurveySession> recentSessions = surveySessionRepository.findRecentCompletedByElderId(elderId, since);
